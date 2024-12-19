@@ -11,6 +11,74 @@ knitr::opts_chunk$set(
   fig.path = "man/figures/README-",
   out.width = "100%"
 )
+rm(list = ls())
+root_folder <- rprojroot::find_rstudio_root_file()
+dataDir <- r"(data\FirstWildfires)"
+source(file.path(root_folder, "R/EnvSetup.R"), echo = TRUE)
+
+plot_FireRun <- function(vfire, vrun, nameFeho_i = "FeHo"){
+  n_categories <- length(unique(vfire[[nameFeho_i]][[1]]))
+  custom_colors <- colorRampPalette(c("lightyellow", "yellow", "red"))(n_categories)
+  
+  # Plot Runs with Fire Fronts map
+  PolRun <- ggplot() +
+    geom_spatvector(aes(fill = factor(.data[[nameFeho_i]])), vfire)+
+    # scale_fill_brewer(palette = "OrRd")+
+    scale_fill_manual(values = custom_colors)+
+    geom_spatvector(data = vrun, color = "blue", linewidth = 1,
+                    arrow = arrow(angle = 45,
+                                  ends = "last",
+                                  type = "open",
+                                  length = unit(0.2, "cm")))
+  
+  return(PolRun)
+}
+
+area_process <- function(AreaName,  nameID_i = "OBJECTID", nameFeho_i = "FeHo"){
+  # Get fire fronts shp file
+  setwd(file.path(root_folder, dataDir, AreaName))
+  shpIn <- fs::dir_ls("./input", glob = "*.shp")
+  vFireIn <- vect(shpIn)
+  
+  
+  
+  # Run FireRun Algorithm for Polygon only
+  if (!file.exists("outputs/RunsPol.shp")) {
+    Runs(vFireIn, nameID = nameID_i, nameFeho = nameFeho_i, CreateSharedFrontLines = T)
+  }
+  vRunsPol <- vect("outputs/RunsPol.shp")
+  
+  # Run FireRun Algorithm with Wind data
+  if (!file.exists("outputs/RunsWind.shp")) {
+    WTabHr <- read.csv2("./input/TesaureWind.csv", header = T, dec = ".")
+    Runs(vFireIn, nameID = nameID_i, nameFeho = nameFeho_i, WindTablexHour=WTabHr,
+         flagRuns='wind' , CreateSharedFrontLines = T)
+  }
+  vRunsWind <- vect("outputs/RunsWind.shp")
+  
+  
+  # Plot Runs with Fire Fronts map
+  PolRun  <- plot_FireRun(vFireIn, vRunsPol, nameFeho_i)
+  WindRun <- plot_FireRun(vFireIn, vRunsWind, nameFeho_i)
+  
+  # WindRun <- ggplot() +
+  #   geom_spatvector(aes(fill = OBJECTID), vFireIn)+
+  #   scale_fill_gradientn(colours = c("lightyellow","yellow","red"))+
+  #   geom_spatvector(data = vRuns, color = "blue", linewidth = 1,
+  #                   arrow = arrow(angle = 45,
+  #                                 ends = "last",
+  #                                 type = "open",
+  #                                 length = unit(0.2, "cm")))
+  
+  p_all <- ggarrange(PolRun, WindRun,
+            labels = c("Pol", "Wind"),
+            ncol = 1, nrow = 2, common.legend = TRUE, legend = "right")
+  
+  plot(p_all)
+  # Back to root folder
+  setwd(root_folder)
+}
+
 ```
 
 # FireRuns
@@ -18,37 +86,21 @@ knitr::opts_chunk$set(
 <!-- badges: start -->
 <!-- badges: end -->
 
-The goal of FireRuns is to ...
+The functions in `FireRuns` package is necessary for this project.
 
 ## Installation
 
 You can install the development version of FireRuns like so:
 
-``` r
+``` {r}
 # devtools::install_github("AndreaDuane/FireRuns")
 ```
 
 ## Example
 
-This is a basic example which shows you how to solve a common problem:
+`area_process()` will look into the data folder named with `"GIF14_Au"` to process the fire run calculation. The results are like the following:
 
 ```{r example}
-library(FireRuns)
-## not yet
+area_process("GIF14_Au")
 ```
 
-What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so:
-
-```{r cars}
-summary(cars)
-```
-
-You'll still need to render `README.Rmd` regularly, to keep `README.md` up-to-date. `devtools::build_readme()` is handy for this.
-
-You can also embed plots, for example:
-
-```{r pressure, echo = FALSE}
-plot(pressure)
-```
-
-In that case, don't forget to commit and push the resulting figure files, so they display on GitHub and CRAN.
