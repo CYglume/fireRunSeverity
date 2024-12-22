@@ -1,12 +1,19 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# FireRuns
+# FireRuns post fire analysis project
 
 <!-- badges: start -->
 <!-- badges: end -->
 
-The functions in `FireRuns` package is necessary for this project.
+This project aims to analyse the post fire effects and relate the
+influence of fire run speed to environmental change.
+
+### Package Requirement
+
+**R Environment**:`FireRuns`, `ecmwfr`
+
+**Python Environment**: `earthengine-api`, `geemap`
 
 ## Workflow
 
