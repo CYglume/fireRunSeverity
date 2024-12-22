@@ -4,6 +4,7 @@ output: github_document
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
+
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -87,6 +88,11 @@ area_process <- function(AreaName,  nameID_i = "OBJECTID", nameFeho_i = "FeHo"){
 <!-- badges: end -->
 
 The functions in `FireRuns` package is necessary for this project.
+
+## Workflow
+![Image Title](./man/figures/workflow.png){width=100%}.
+
+--- 
 
 ## Installation
 

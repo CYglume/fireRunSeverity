@@ -8,6 +8,13 @@
 
 The functions in `FireRuns` package is necessary for this project.
 
+## Workflow
+
+<img src="./man/figures/workflow.png" style="width:100.0%"
+alt="Image Title" />.
+
+------------------------------------------------------------------------
+
 ## Installation
 
 You can install the development version of FireRuns like so:
