@@ -1,6 +1,21 @@
 root_folder <- rprojroot::find_rstudio_root_file()
 source(file.path(root_folder, "R/EnvSetup.R"), echo = FALSE)
 
+#----------------------------------------------
+# set a key to the keychain
+if (file.exists("R/.credential.R")){
+  source(file.path(root_folder, "R/.credential.R"), echo = FALSE)
+  wf_set_key(key = ecmwfAPIKey)
+} else {
+  message("Error: '.credential.R' required for API tokens!")
+  # Input your login info with an interactive request
+  wf_set_key()
+}
+
+# you can retrieve the key using
+# wf_get_key()
+#----------------------------------------------
+
 AreaName = "GIF14_Au"
 # Get fire fronts shp file
 setwd(file.path(root_folder, dataDir, AreaName))
@@ -15,12 +30,16 @@ FeHo_tbl <- vFireIn %>%
 
 for (i in 1:2) {
   fhGet = FeHo_tbl$FeHo[i]
+  fhGet2 = FeHo_tbl$FeHo[i+1]
   fhTime = as.POSIXct(fhGet, format = "%Y/%m/%d_%H%M")
+  fhTime2 = as.POSIXct(fhGet2, format = "%Y/%m/%d_%H%M")
   yy = format(fhTime, "%Y")
   mm = format(fhTime, "%m")
   dd = format(fhTime, "%d")
   tt = format(fhTime, "%H:%M")
-  t_t = format(fhTime, "%H%M")
+  stmp_tt = format(fhTime, "%H%M")
+  
+  centroids(v)
   
   feat_fh <- vFireIn %>% 
     filter(FeHo == {{fhGet}})
@@ -36,7 +55,7 @@ for (i in 1:2) {
   coorAPI <- c(lon_lat_extent[4], lon_lat_extent[1], lon_lat_extent[3], lon_lat_extent[2])
   
   # Write request for API
-  time_stp <- paste0(yy,mm,dd,t_t)
+  time_stp <- paste0(yy,mm,dd,stmp_tt)
   temp <- paste0("/data/ER5/era5-land-wind-", time_stp,".nc")
   print(paste("Store to ...", temp))
   if (!file.exists(paste0(root_folder, temp))){
