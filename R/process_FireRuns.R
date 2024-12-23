@@ -2,9 +2,7 @@
 # Try to run FireRun on sample data
 # 
 # Input: data/FirstWildfires/
-rm(list = ls())
-root_folder <- rprojroot::find_rstudio_root_file()
-dataDir <- r"(data\FirstWildfires)"
+# ------------------------------------------------------------------------------
 source(file.path(root_folder, "R/EnvSetup.R"), echo = TRUE)
 
 
@@ -12,35 +10,6 @@ source(file.path(root_folder, "R/EnvSetup.R"), echo = TRUE)
 # area_process("LaJonquera", nameID = "ObjectID")
 # area_process("LC1", nameID = "ObjectID")
 area_process("StLlorenc", nameFeho_i = "FeHo_2")
-
-
-
-
-s <- fetch_firePeri("GIF14_Au")
-fetch_fireRun("LC1", "Wind")
-
-# --- Test section
-
-s1 <- terra::as.points(s[1:10])
-s2 <- distance(s1, pairs = T)
-head(s2)
-terra::geom(s1)[, c(1, 3, 4)] %>% head()
-k <- merge(s2, terra::geom(s1)[, c(1, 3, 4)], by.x = "from", by.y = "geom")
-head(k)
-merge(k, terra::geom(s1)[, c(1, 3, 4)], by.x = "to", by.y = "geom") %>% head()
-
-head(terra::geom(s[1])[, c(1, 3, 4)])
-#  Match by.x for dataset x, match by.y for dataset y
-
-# --- Test section
-
-
-p    <- fetch_firePeri("LC1")
-pRun <- fetch_fireRun("LC1", "Wind")
-plot_FireRun(p, pRun)
-
-
-
 
 
 
