@@ -393,14 +393,14 @@ Runs2 <- function(AllPols, CRSproject=terra::crs(AllPols), nameID, nameFeho, Win
     if (flagRuns %in% c("both", "wind")) {
       if (!is.null(nrow(PerPoligonMaxims_wind))) { # continue only if there is a Run, if not stop
         for (polygon in 1:nrow(PerPoligonMaxims_wind)){
-        # Createline
-        Inner <- PerPoligonMaxims_wind[polygon, c("CoordXFrom", "CoordYFrom")]
-        names(Inner) <- c("x", "y")
-        Outer <- PerPoligonMaxims_wind[polygon, c("CoordXTo", "CoordYTo")]
-        names(Outer) <- c("x", "y")
-        xy <- as.matrix(rbind(Inner, Outer))
-        LinXY <- terra::vect(xy, "lines", crs = CRSproject, atts = PerPoligonMaxims_wind[, c(1, 2, 3, 6, 11, 12, 13)])
-        Nameslist[[length(Nameslist_pol) + 1]] <- LinXY
+          # Createline
+          Inner <- PerPoligonMaxims_wind[polygon, c("CoordXFrom", "CoordYFrom")]
+          names(Inner) <- c("x", "y")
+          Outer <- PerPoligonMaxims_wind[polygon, c("CoordXTo", "CoordYTo")]
+          names(Outer) <- c("x", "y")
+          xy <- as.matrix(rbind(Inner, Outer))
+          LinXY <- terra::vect(xy, "lines", crs = CRSproject, atts = PerPoligonMaxims_wind[, c(1, 2, 3, 6, 11, 12, 13)])
+          Nameslist[[length(Nameslist_pol) + 1]] <- LinXY
         }#end create wind lines
       } # end if there is a run
     } # end wind
@@ -410,14 +410,14 @@ Runs2 <- function(AllPols, CRSproject=terra::crs(AllPols), nameID, nameFeho, Win
       if (!is.null(nrow(PerPoligonMaxims_pol))) { # continue only if there is a Run, if not stop
         # Select Maximum Run in all polygons. The first if there is more than one.
         for (polygon in 1:nrow(PerPoligonMaxims_pol)){
-        # Createline
-        Inner <- PerPoligonMaxims_pol[polygon, c("CoordXFrom", "CoordYFrom")]
-        names(Inner) <- c("x", "y")
-        Outer <- PerPoligonMaxims_pol[polygon, c("CoordXTo", "CoordYTo")]
-        names(Outer) <- c("x", "y")
-        xy <- as.matrix(rbind(Inner, Outer))
-        LinXY_pol <- terra::vect(xy, "lines", crs = CRSproject, atts = PerPoligonMaxims_pol[, c(1, 2, 3, 6, 11, 12, 13)])
-        Nameslist_pol[[length(Nameslist_pol) + 1]] <- LinXY_pol
+          # Createline
+          Inner <- PerPoligonMaxims_pol[polygon, c("CoordXFrom", "CoordYFrom")]
+          names(Inner) <- c("x", "y")
+          Outer <- PerPoligonMaxims_pol[polygon, c("CoordXTo", "CoordYTo")]
+          names(Outer) <- c("x", "y")
+          xy <- as.matrix(rbind(Inner, Outer))
+          LinXY_pol <- terra::vect(xy, "lines", crs = CRSproject, atts = PerPoligonMaxims_pol[, c(1, 2, 3, 6, 11, 12, 13)])
+          Nameslist_pol[[length(Nameslist_pol) + 1]] <- LinXY_pol
         } #end create polygon lines
       } # end if there is a run
     } # end runspol
@@ -434,13 +434,13 @@ Runs2 <- function(AllPols, CRSproject=terra::crs(AllPols), nameID, nameFeho, Win
   if (flagRuns %in% c("both", "wind")) {
     Nameslist[sapply(Nameslist, is.null)] <- NULL
     TotLinesWind <- do.call(rbind, Nameslist)
-    terra::writeVector(TotLinesWind, filename = "outputs/RunsWind.shp", filetype = "ESRI shapefile", overwrite = T)
+    terra::writeVector(TotLinesWind, filename = "outputs/FullRunsWind.shp", filetype = "ESRI shapefile", overwrite = T)
   }
 
   if (flagRuns %in% c("both", "pols")) {
     Nameslist_pol[sapply(Nameslist_pol, is.null)] <- NULL
     TotLinesPol <- do.call(rbind, Nameslist_pol)
-    terra::writeVector(TotLinesPol, filename = "outputs/RunsPol.shp", filetype = "ESRI shapefile", overwrite = T)
+    terra::writeVector(TotLinesPol, filename = "outputs/FullRunsPol.shp", filetype = "ESRI shapefile", overwrite = T)
   }
 }
 
