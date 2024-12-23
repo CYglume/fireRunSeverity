@@ -400,7 +400,7 @@ Runs2 <- function(AllPols, CRSproject=terra::crs(AllPols), nameID, nameFeho, Win
           names(Outer) <- c("x", "y")
           xy <- as.matrix(rbind(Inner, Outer))
           LinXY <- terra::vect(xy, "lines", crs = CRSproject, atts = PerPoligonMaxims_wind[, c(1, 2, 3, 6, 11, 12, 13)])
-          Nameslist[[length(Nameslist_pol) + 1]] <- LinXY
+          Nameslist[[length(Nameslist) + 1]] <- LinXY
         }#end create wind lines
       } # end if there is a run
     } # end wind
