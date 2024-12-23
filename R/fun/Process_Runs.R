@@ -114,3 +114,79 @@ area_process <- function(AreaName,  nameID_i = "OBJECTID", nameFeho_i = "FeHo"){
   # Back to root folder
   setwd(root_folder)
 }
+
+area_process_allArrow <- function(AreaName,  nameID_i = "OBJECTID", nameFeho_i = "FeHo"){
+  setwd(file.path(root_folder, dataDir, AreaName))
+  # Fetch Fire Propagation polygons
+  vFireIn <- fetch_firePeri(AreaName)
+  
+  # Clean SharedFrontLines file
+  f_frontline <- fs::dir_ls(glob = "*SharedFrontLines.*")
+  if (length(f_frontline) > 0) {
+    message("-- Deleting SharedFrontLines")
+    for (i in f_frontline) {
+      file.remove(f_frontline)
+    }
+  }
+  rm(f_frontline)
+  
+  # Run FireRun Algorithm for Polygon only
+  if (!file.exists("outputs/RunsPol.shp")) {
+    message("-- Producing RunsPol.shp:")
+    Runs2(vFireIn, nameID = nameID_i, nameFeho = nameFeho_i, CreateSharedFrontLines = T)
+  } else {
+    message("-- Found RunsPol.shp --")
+  }
+  vRunsPol <- vect("outputs/FullRunsPol.shp")
+  
+  # Run FireRun Algorithm with Wind data
+  if (!file.exists("outputs/RunsWind.shp")) {
+    message("-- Producing RunsWind.shp:")
+    WTabHr <- read.csv("./input/TesaureWind.csv", header = T)
+    if (!"codi_hora" %in% names(WTabHr)) {stop("Read csv error!\n  Check read option and sep args.")}
+    Runs2(vFireIn, nameID = nameID_i, nameFeho = nameFeho_i, WindTablexHour=WTabHr,
+         flagRuns='wind' , CreateSharedFrontLines = T)
+  } else {
+    message("-- Found RunsWind.shp --")
+  }
+  vRunsWind <- vect("outputs/FullRunsWind.shp")
+  
+  
+  # Plot Runs with Fire Fronts map
+  message("-- Plot Fire Runs --")
+  PolRun  <- plot_FireRun(vFireIn, vRunsPol, nameFeho_i)
+  WindRun <- plot_FireRun(vFireIn, vRunsWind, nameFeho_i)
+  
+  p_all <- ggarrange(PolRun, WindRun,
+                     labels = c("Pol", "Wind"),
+                     ncol = 1, nrow = 2, common.legend = TRUE, legend = "right")
+  
+  plot(p_all)
+  # Back to root folder
+  setwd(root_folder)
+}
+
+wind_csv_Check <- function(AreaName, to_save = F){
+  setwd(file.path(root_folder, dataDir, AreaName))
+  csv_i <- fs::dir_ls("./input", glob = "*.csv")
+  if (file.exists("input/TesaureWind.csv")){
+    WTabHr <- read.csv("input/TesaureWind.csv", header = T, sep = ";")
+    message("Wind data get:")
+    print(WTabHr)
+    if(WTabHr[['codi_hora']][1] != 1) {
+      message("!-- codi_hora modified --!")
+      WTabHr[['codi_hora']] = WTabHr[['codi_hora']] - 1
+    }
+    
+  } else {
+    stop("Can't find input/TesaureWind.csv!\nFetch wind data and try again!")
+  }
+  
+  if (to_save) {
+    write.csv(WTabHr, 
+              file = "input/TesaureWind.csv", 
+              row.names = FALSE)
+  }
+  setwd(root_folder)
+  return(WTabHr)
+}
