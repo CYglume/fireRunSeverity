@@ -90,9 +90,7 @@ area_process <- function(AreaName,  nameID_i = "OBJECTID", nameFeho_i = "FeHo"){
   f_frontline <- fs::dir_ls(glob = "*SharedFrontLines.*")
   if (length(f_frontline) > 0) {
     message("-- Deleting SharedFrontLines")
-    for (i in f_frontline) {
-      file.remove(f_frontline)
-    }
+    file.remove(f_frontline)
   }
   rm(f_frontline)
   
@@ -141,9 +139,7 @@ area_process_allArrow <- function(AreaName,  nameID_i = "OBJECTID", nameFeho_i =
   f_frontline <- fs::dir_ls(glob = "*SharedFrontLines.*")
   if (length(f_frontline) > 0) {
     message("-- Deleting SharedFrontLines")
-    for (i in f_frontline) {
-      file.remove(f_frontline)
-    }
+    file.remove(f_frontline)
   }
   rm(f_frontline)
   

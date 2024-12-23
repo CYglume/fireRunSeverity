@@ -39,4 +39,19 @@ to process the fire run calculation. The results are like the following:
 area_process("GIF14_Au")
 ```
 
-<img src="man/figures/README-example-1.png" width="100%" />
+<img src="man/figures/README-example-maxRun-1.png" width="50%" />
+
+`area_process_allArrow()` outputs max runs in all polygons. The
+`areaList` helps run algorithm in a row with preset parameters.
+
+``` r
+areaList = list(c(aoi = "GIF14_Au",   nameID = "OBJECTID",   nameFeho_i = "FeHo"),
+                c(aoi = "LaJonquera", nameID = "ObjectIDgo", nameFeho_i = "FeHo"),
+                c(aoi = "LC1",        nameID = "ObjectID",   nameFeho_i = "FeHo"),
+                c(aoi = "StLlorenc",  nameID = "OBJECTID",   nameFeho_i = "FeHo_2")
+)
+aa = areaList[[1]]
+area_process_allArrow(aa[['aoi']],  aa[['nameID']], aa[['nameFeho_i']])
+```
+
+<img src="man/figures/README-example-allRun-1.png" width="50%" />

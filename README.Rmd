@@ -17,69 +17,6 @@ root_folder <- rprojroot::find_rstudio_root_file()
 dataDir <- r"(data\FirstWildfires)"
 source(file.path(root_folder, "R/EnvSetup.R"), echo = TRUE)
 
-plot_FireRun <- function(vfire, vrun, nameFeho_i = "FeHo"){
-  n_categories <- length(unique(vfire[[nameFeho_i]][[1]]))
-  custom_colors <- colorRampPalette(c("lightyellow", "yellow", "red"))(n_categories)
-  
-  # Plot Runs with Fire Fronts map
-  PolRun <- ggplot() +
-    geom_spatvector(aes(fill = factor(.data[[nameFeho_i]])), vfire)+
-    # scale_fill_brewer(palette = "OrRd")+
-    scale_fill_manual(values = custom_colors)+
-    geom_spatvector(data = vrun, color = "blue", linewidth = 1,
-                    arrow = arrow(angle = 45,
-                                  ends = "last",
-                                  type = "open",
-                                  length = unit(0.2, "cm")))
-  
-  return(PolRun)
-}
-
-area_process <- function(AreaName,  nameID_i = "OBJECTID", nameFeho_i = "FeHo"){
-  # Get fire fronts shp file
-  setwd(file.path(root_folder, dataDir, AreaName))
-  shpIn <- fs::dir_ls("./input", glob = "*.shp")
-  vFireIn <- vect(shpIn)
-  
-  
-  
-  # Run FireRun Algorithm for Polygon only
-  if (!file.exists("outputs/RunsPol.shp")) {
-    Runs(vFireIn, nameID = nameID_i, nameFeho = nameFeho_i, CreateSharedFrontLines = T)
-  }
-  vRunsPol <- vect("outputs/RunsPol.shp")
-  
-  # Run FireRun Algorithm with Wind data
-  if (!file.exists("outputs/RunsWind.shp")) {
-    WTabHr <- read.csv2("./input/TesaureWind.csv", header = T, dec = ".")
-    Runs(vFireIn, nameID = nameID_i, nameFeho = nameFeho_i, WindTablexHour=WTabHr,
-         flagRuns='wind' , CreateSharedFrontLines = T)
-  }
-  vRunsWind <- vect("outputs/RunsWind.shp")
-  
-  
-  # Plot Runs with Fire Fronts map
-  PolRun  <- plot_FireRun(vFireIn, vRunsPol, nameFeho_i)
-  WindRun <- plot_FireRun(vFireIn, vRunsWind, nameFeho_i)
-  
-  # WindRun <- ggplot() +
-  #   geom_spatvector(aes(fill = OBJECTID), vFireIn)+
-  #   scale_fill_gradientn(colours = c("lightyellow","yellow","red"))+
-  #   geom_spatvector(data = vRuns, color = "blue", linewidth = 1,
-  #                   arrow = arrow(angle = 45,
-  #                                 ends = "last",
-  #                                 type = "open",
-  #                                 length = unit(0.2, "cm")))
-  
-  p_all <- ggarrange(PolRun, WindRun,
-            labels = c("Pol", "Wind"),
-            ncol = 1, nrow = 2, common.legend = TRUE, legend = "right")
-  
-  plot(p_all)
-  # Back to root folder
-  setwd(root_folder)
-}
-
 ```
 
 # FireRuns post fire analysis project
@@ -111,7 +48,19 @@ You can install the development version of FireRuns like so:
 
 `area_process()` will look into the data folder named with `"GIF14_Au"` to process the fire run calculation. The results are like the following:
 
-```{r example}
+```{r example-maxRun, message=FALSE, out.width='50%'}
 area_process("GIF14_Au")
+```
+
+`area_process_allArrow()` outputs max runs in all polygons. The `areaList` helps run algorithm in a row with preset parameters.
+
+```{r example-allRun, message=FALSE, out.width='50%'}
+areaList = list(c(aoi = "GIF14_Au",   nameID = "OBJECTID",   nameFeho_i = "FeHo"),
+                c(aoi = "LaJonquera", nameID = "ObjectIDgo", nameFeho_i = "FeHo"),
+                c(aoi = "LC1",        nameID = "ObjectID",   nameFeho_i = "FeHo"),
+                c(aoi = "StLlorenc",  nameID = "OBJECTID",   nameFeho_i = "FeHo_2")
+)
+aa = areaList[[1]]
+area_process_allArrow(aa[['aoi']],  aa[['nameID']], aa[['nameFeho_i']])
 ```
 
