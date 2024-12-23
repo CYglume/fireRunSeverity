@@ -12,7 +12,7 @@ fetch_firePeri <- function(AreaName){
     stop(paste0("No input shp or having more than 1 shp in input folder!\n  Get shp:\n", paste(shpIn, collapse = "\n")))
   }
   vFireIn <- vect(shpIn)
-  message(paste0("Fetch fire propagation data:\n  ./data/input", basename(shpIn)))
+  message(paste0("Fetch fire propagation data:\n  ./data/input/", basename(shpIn)))
   return(vFireIn)
 }
 
@@ -131,23 +131,23 @@ area_process_allArrow <- function(AreaName,  nameID_i = "OBJECTID", nameFeho_i =
   rm(f_frontline)
   
   # Run FireRun Algorithm for Polygon only
-  if (!file.exists("outputs/RunsPol.shp")) {
-    message("-- Producing RunsPol.shp:")
+  if (!file.exists("outputs/FullRunsPol.shp")) {
+    message("-- Producing FullRunsPol.shp:")
     Runs2(vFireIn, nameID = nameID_i, nameFeho = nameFeho_i, CreateSharedFrontLines = T)
   } else {
-    message("-- Found RunsPol.shp --")
+    message("-- Found FullRunsPol.shp --")
   }
   vRunsPol <- vect("outputs/FullRunsPol.shp")
   
   # Run FireRun Algorithm with Wind data
-  if (!file.exists("outputs/RunsWind.shp")) {
-    message("-- Producing RunsWind.shp:")
+  if (!file.exists("outputs/FullRunsWind.shp")) {
+    message("-- Producing FullRunsWind.shp:")
     WTabHr <- read.csv("./input/TesaureWind.csv", header = T)
     if (!"codi_hora" %in% names(WTabHr)) {stop("Read csv error!\n  Check read option and sep args.")}
     Runs2(vFireIn, nameID = nameID_i, nameFeho = nameFeho_i, WindTablexHour=WTabHr,
          flagRuns='wind' , CreateSharedFrontLines = T)
   } else {
-    message("-- Found RunsWind.shp --")
+    message("-- Found FullRunsWind.shp --")
   }
   vRunsWind <- vect("outputs/FullRunsWind.shp")
   

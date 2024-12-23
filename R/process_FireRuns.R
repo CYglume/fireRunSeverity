@@ -3,43 +3,25 @@
 # 
 # Input: data/FirstWildfires/
 # ------------------------------------------------------------------------------
-source(file.path(root_folder, "R/EnvSetup.R"), echo = TRUE)
+source("R/EnvSetup.R", echo = TRUE)
 
 
 # area_process("GIF14_Au")
 # area_process("LaJonquera", nameID = "ObjectID")
 # area_process("LC1", nameID = "ObjectID")
-area_process("StLlorenc", nameFeho_i = "FeHo_2")
+# area_process("StLlorenc", nameFeho_i = "FeHo_2")
 
-
+areaList = list(c(aoi = "GIF14_Au",   nameID = "OBJECTID", nameFeho_i = "FeHo"),
+                c(aoi = "LaJonquera", nameID = "ObjectID", nameFeho_i = "FeHo"),
+                c(aoi = "LC1",        nameID = "ObjectID", nameFeho_i = "FeHo"),
+                c(aoi = "StLlorenc",  nameID = "OBJECTID", nameFeho_i = "FeHo_2")
+                )
+for (aa in areaList){
+  area_process_allArrow(aa[['aoi']],  aa[['nameID']], aa[['nameFeho_i']])
+}
 
 
 #------ CSV 
-wind_csv_Check <- function(AreaName, to_save = F){
-  setwd(file.path(root_folder, dataDir, AreaName))
-  csv_i <- fs::dir_ls("./input", glob = "*.csv")
-  if (file.exists("input/TesaureWind.csv")){
-    WTabHr <- read.csv("input/TesaureWind.csv", header = T, sep = ";")
-    message("Wind data get:")
-    print(WTabHr)
-    if(WTabHr[['codi_hora']][1] != 1) {
-      message("!-- codi_hora modified --!")
-      WTabHr[['codi_hora']] = WTabHr[['codi_hora']] - 1
-    }
-    
-  } else {
-    stop("Can't find input/TesaureWind.csv!\nFetch wind data and try again!")
-  }
-  
-  if (to_save) {
-    write.csv(WTabHr, 
-              file = "input/TesaureWind.csv", 
-              row.names = FALSE)
-  }
-  setwd(root_folder)
-  return(WTabHr)
-}
-
 wind_csv_Check("GIF14_Au", to_save = F)
 wind_csv_Check("LaJonquera", to_save = F)
 wind_csv_Check("LC1", to_save = F)
