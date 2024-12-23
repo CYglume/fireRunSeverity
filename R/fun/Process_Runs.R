@@ -12,13 +12,13 @@ fetch_firePeri <- function(AreaName){
     stop(paste0("No input shp or having more than 1 shp in input folder!\n  Get shp:\n", paste(shpIn, collapse = "\n")))
   }
   vFireIn <- vect(shpIn)
-  message(paste0("Fetch fire propagation data:\n  ./data/input/", basename(shpIn)))
+  message(paste0("Fetch fire propagation data:\n  ./data/input/", AreaName, "/", basename(shpIn)))
   return(vFireIn)
 }
 
 fetch_fireRun <- function(AreaName, RunType = "Pol"){
-  if (!RunType %in% c("Pol", "Wind", "AllPol")){
-    stop("Select correct RunType! (Pol, Wind, AllPol)")
+  if (!RunType %in% c("Pol", "Wind", "FullPol", "FullWind")){
+    stop("Select correct RunType! (Pol, Wind, FullPol, FullWind)")
   }
   
   # Find
@@ -39,9 +39,26 @@ fetch_fireRun <- function(AreaName, RunType = "Pol"){
       message("-- Found RunsWind.shp --")
       vRuns <- vect("outputs/RunsWind.shp")
     }
+  } else if (RunType == "FullPol"){
+    # Run FireRun Algorithm with Wind data
+    if (!file.exists("outputs/FullRunsPol.shp")) {
+      stop("Found no FullRunsPol.shp!\nRun area_process_allArrow() and try again!")
+    } else {
+      message("-- Found FullRunsPol.shp --")
+      vRuns <- vect("outputs/FullRunsPol.shp")
+    }
+  } else if (RunType == "FullWind"){
+    # Run FireRun Algorithm with Wind data
+    if (!file.exists("outputs/FullRunsWind.shp")) {
+      stop("Found no FullRunsWind.shp!\nRun area_process_allArrow() and try again!")
+    } else {
+      message("-- Found FullRunsWind.shp --")
+      vRuns <- vect("outputs/FullRunsWind.shp")
+    } 
   } else {
-    stop("`AllPol` not supported  yet!")
+    stop("Input `RunType` error!")
   }
+  
   setwd(root_folder)
   return(vRuns)
 }
