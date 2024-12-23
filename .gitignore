@@ -1,9 +1,12 @@
+# Temporarily disabled (still testing)
+R/process_FireRuns.R
+
+
 # Data
 /data/
 
 #credential
 R/.credential.R
-
 
 # History files
 .Rhistory
