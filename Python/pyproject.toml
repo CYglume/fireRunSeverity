@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "geefetch"
+version = "0.1.0"
+description = ""
+authors = ["CYglume <glume.cy.yang@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+earthengine-api = "^1.4.0"
+geemap = "^0.35.1"
+ipynb-py-convert = "^0.4.6"
+geopandas = "^1.0.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
