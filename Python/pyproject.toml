@@ -11,6 +11,7 @@ earthengine-api = "^1.4.0"
 geemap = "^0.35.1"
 ipynb-py-convert = "^0.4.6"
 geopandas = "^1.0.1"
+google-auth-oauthlib = "^1.2.1"
 
 
 [build-system]

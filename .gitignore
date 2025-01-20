@@ -7,6 +7,8 @@ test/rGEE.R
 
 #credential
 R/.credential.R
+Python/geeFetch/.credential.json
+Python/geeFetch/.token.json
 
 # History files
 .Rhistory

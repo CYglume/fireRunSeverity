@@ -13,7 +13,7 @@ python -m venv %VENV_PATH%
 %VENV_PATH%/bin/pip install poetry
 ```
 
-## Install packages for GEE
+## Install packages for GEE and Drive API
 - switch to Python folder in this project: `fireRunSeverity/Python`
 - intall using `pyproject.toml` file provided (automatically done by poetry) 
 ```
@@ -23,6 +23,8 @@ poetry install
 ```
 
 # GEE project setup
+**Necessary for `severityCalc`**(.py/.ipynb)
+
 You will need to setup GEE project in your Google account to continue with Python API.
 - Sign up for [Google Earth Engine](https://code.earthengine.google.com/register)
   - unpaid -> Academia & Research
@@ -35,6 +37,21 @@ You will need to setup GEE project in your Google account to continue with Pytho
   ![GEE Search Screenshot](man/gee_Search.png)
   - Enable the API in the intro page
   ![GEE API Screenshot](man/gee_API.png)
+
+# Google Drive API setup
+**Necessary for `driveDownload`**(.py/.ipynb)
+
+Check the [Google document](https://developers.google.com/drive/activity/v2/quickstart/python) for detailed instructions.
+- Enable Google drive API as enabling Google Earth Engine API in [GEE setup](#gee-project-setup)
+![Google drive API Screenshot](man/drive_API.png)
+- Go to [Credentials](https://console.cloud.google.com/apis/credentials) in your APIs & Services.
+  1. CREATE CREDENTIALS
+  2. OAuth client ID
+  3. Application Type &rarr; Desktop app
+  4. Give the Name
+  5. CREATE
+  6. Click **DOWNLOAD JSON**
+  7. Save file as `.credential.json` under folder `fireRunSeverity/Python/geeFetch`
 
 # Operation
 For simple usage, one can just operate algorithms on Jupyter notebooks located in the [notebook folder](/geeFetch/notebook/), where the code was mainly tested and will be later integrated into `geeFetch/main.py`.
