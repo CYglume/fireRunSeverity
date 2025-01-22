@@ -18,7 +18,7 @@ if (file.exists("R/.credential.R")){
 
 AreaName = "GIF14_Au"
 # Get fire fronts shp file
-setwd(file.path(root_folder, dataDir, AreaName))
+setwd(file.path(root_folder, run_DataDir, AreaName))
 shpIn <- fs::dir_ls("./input", glob = "*.shp")
 vFireIn <- vect(shpIn)
 

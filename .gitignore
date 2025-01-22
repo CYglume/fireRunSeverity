@@ -1,9 +1,10 @@
 # Temporarily disabled (still testing)
 R/work_script.R
-test/rGEE.R
+R/analysisRuns.R
 
 # Data
 /data/
+/src/fireRaw/*
 
 #credential
 R/.credential.R
