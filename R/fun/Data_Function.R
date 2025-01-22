@@ -6,7 +6,7 @@
 # Functions ---------------------------------------------------------------
 fetch_firePeri <- function(AreaName){
   # Get fire fronts shp file
-  path <- file.path(root_folder, dataDir, AreaName)
+  path <- file.path(root_folder, run_DataDir, AreaName)
   shpIn <- fs::dir_ls(file.path(path, "input"), glob = "*.shp")
   if (length(shpIn) != 1){
     stop(paste0("No input shp or having more than 1 shp in input folder!\n  Get shp:\n", paste(shpIn, collapse = "\n")))
@@ -22,7 +22,7 @@ fetch_fireRun <- function(AreaName, RunType = "Pol"){
   }
   
   # Find
-  setwd(file.path(root_folder, dataDir, AreaName))
+  setwd(file.path(root_folder, run_DataDir, AreaName))
   if (RunType == "Pol"){
     # Run FireRun Algorithm for Polygon only
     if (!file.exists("outputs/RunsPol.shp")) {
@@ -81,106 +81,120 @@ plot_FireRun <- function(vfire, vrun, nameFeho_i = "FeHo"){
   return(PolRun)
 }
 
-area_process <- function(AreaName,  nameID_i = "OBJECTID", nameFeho_i = "FeHo"){
-  setwd(file.path(root_folder, dataDir, AreaName))
-  # Fetch Fire Propagation polygons
-  vFireIn <- fetch_firePeri(AreaName)
+clear_Sharedfronline <- function(){
+  root_length <- length(strsplit(root_folder, "/")[[1]])
+  rel_fld_name <- strsplit(getwd(), "/")[[1]]
+  rel_fld_name <- paste(rel_fld_name[root_length:length(rel_fld_name)], collapse = "/")
   
   # Clean SharedFrontLines file
   f_frontline <- fs::dir_ls(glob = "*SharedFrontLines.*")
   if (length(f_frontline) > 0) {
+    message("Searching SharedFrontLines......")
+    message(paste0("(Folder: ", rel_fld_name, ")"))
     message("-- Deleting SharedFrontLines")
     file.remove(f_frontline)
   }
   rm(f_frontline)
+}
+
+area_process <- function(AreaName,  nameID_i = "OBJECTID", nameFeho_i = "FeHo", do_plot = F){
+  setwd(file.path(root_folder, run_DataDir, AreaName))
+  # Fetch Fire Propagation polygons
+  vFireIn <- fetch_firePeri(AreaName)
   
   # Run FireRun Algorithm for Polygon only
   if (!file.exists("outputs/RunsPol.shp")) {
     message("-- Producing RunsPol.shp:")
+    # Clean SharedFrontLines file
+    clear_Sharedfronline()
     Runs(vFireIn, nameID = nameID_i, nameFeho = nameFeho_i, CreateSharedFrontLines = T)
   } else {
     message("-- Found RunsPol.shp --")
   }
-  vRunsPol <- vect("outputs/RunsPol.shp")
   
   # Run FireRun Algorithm with Wind data
   if (!file.exists("outputs/RunsWind.shp")) {
     message("-- Producing RunsWind.shp:")
     WTabHr <- read.csv("./input/TesaureWind.csv", header = T)
     if (!"codi_hora" %in% names(WTabHr)) {stop("Read csv error!\n  Check read option and sep args.")}
+    # Clean SharedFrontLines file
+    clear_Sharedfronline()
     Runs(vFireIn, nameID = nameID_i, nameFeho = nameFeho_i, WindTablexHour=WTabHr,
          flagRuns='wind' , CreateSharedFrontLines = T)
   } else {
     message("-- Found RunsWind.shp --")
   }
-  vRunsWind <- vect("outputs/RunsWind.shp")
   
   
-  # Plot Runs with Fire Fronts map
-  message("-- Plot Fire Runs --")
-  PolRun  <- plot_FireRun(vFireIn, vRunsPol, nameFeho_i)
-  WindRun <- plot_FireRun(vFireIn, vRunsWind, nameFeho_i)
+  if (do_plot){
+    # Plot Runs with Fire Fronts map
+    vRunsPol <- vect("outputs/RunsPol.shp")
+    vRunsWind <- vect("outputs/RunsWind.shp")
+    message("-- Plot Fire Runs --")
+    PolRun  <- plot_FireRun(vFireIn, vRunsPol, nameFeho_i)
+    WindRun <- plot_FireRun(vFireIn, vRunsWind, nameFeho_i)
+    
+    p_all <- ggarrange(PolRun, WindRun,
+                       labels = c("Pol", "Wind"),
+                       ncol = 1, nrow = 2, common.legend = TRUE, legend = "right")
+    
+    plot(p_all)
+  }
   
-  p_all <- ggarrange(PolRun, WindRun,
-                     labels = c("Pol", "Wind"),
-                     ncol = 1, nrow = 2, common.legend = TRUE, legend = "right")
-  
-  plot(p_all)
   # Back to root folder
   setwd(root_folder)
 }
 
-area_process_allArrow <- function(AreaName,  nameID_i = "OBJECTID", nameFeho_i = "FeHo"){
-  setwd(file.path(root_folder, dataDir, AreaName))
+area_process_allArrow <- function(AreaName,  nameID_i = "OBJECTID", nameFeho_i = "FeHo", do_plot = F){
+  setwd(file.path(root_folder, run_DataDir, AreaName))
   # Fetch Fire Propagation polygons
   vFireIn <- fetch_firePeri(AreaName)
-  
-  # Clean SharedFrontLines file
-  f_frontline <- fs::dir_ls(glob = "*SharedFrontLines.*")
-  if (length(f_frontline) > 0) {
-    message("-- Deleting SharedFrontLines")
-    file.remove(f_frontline)
-  }
-  rm(f_frontline)
   
   # Run FireRun Algorithm for Polygon only
   if (!file.exists("outputs/FullRunsPol.shp")) {
     message("-- Producing FullRunsPol.shp:")
+    # Clean SharedFrontLines file
+    clear_Sharedfronline()
     Runs2(vFireIn, nameID = nameID_i, nameFeho = nameFeho_i, CreateSharedFrontLines = T)
   } else {
     message("-- Found FullRunsPol.shp --")
   }
-  vRunsPol <- vect("outputs/FullRunsPol.shp")
+  
   
   # Run FireRun Algorithm with Wind data
   if (!file.exists("outputs/FullRunsWind.shp")) {
     message("-- Producing FullRunsWind.shp:")
     WTabHr <- read.csv("./input/TesaureWind.csv", header = T)
     if (!"codi_hora" %in% names(WTabHr)) {stop("Read csv error!\n  Check read option and sep args.")}
+    # Clean SharedFrontLines file
+    clear_Sharedfronline()
     Runs2(vFireIn, nameID = nameID_i, nameFeho = nameFeho_i, WindTablexHour=WTabHr,
          flagRuns='wind' , CreateSharedFrontLines = T)
   } else {
     message("-- Found FullRunsWind.shp --")
   }
-  vRunsWind <- vect("outputs/FullRunsWind.shp")
   
   
-  # Plot Runs with Fire Fronts map
-  message("-- Plot Fire Runs --")
-  PolRun  <- plot_FireRun(vFireIn, vRunsPol, nameFeho_i)
-  WindRun <- plot_FireRun(vFireIn, vRunsWind, nameFeho_i)
-  
-  p_all <- ggarrange(PolRun, WindRun,
-                     labels = c("Pol", "Wind"),
-                     ncol = 1, nrow = 2, common.legend = TRUE, legend = "right")
-  
-  plot(p_all)
+  if (do_plot){
+    # Plot Runs with Fire Fronts map
+    vRunsPol <- vect("outputs/FullRunsPol.shp")
+    vRunsWind <- vect("outputs/FullRunsWind.shp")
+    message("-- Plot Fire Runs --")
+    PolRun  <- plot_FireRun(vFireIn, vRunsPol, nameFeho_i)
+    WindRun <- plot_FireRun(vFireIn, vRunsWind, nameFeho_i)
+    
+    p_all <- ggarrange(PolRun, WindRun,
+                       labels = c("Pol", "Wind"),
+                       ncol = 1, nrow = 2, common.legend = TRUE, legend = "right")
+    
+    plot(p_all)
+  }
   # Back to root folder
   setwd(root_folder)
 }
 
 wind_csv_Check <- function(AreaName, to_save = F){
-  setwd(file.path(root_folder, dataDir, AreaName))
+  setwd(file.path(root_folder, run_DataDir, AreaName))
   csv_i <- fs::dir_ls("./input", glob = "*.csv")
   if (file.exists("input/TesaureWind.csv")){
     WTabHr <- read.csv("input/TesaureWind.csv", header = T, sep = ";")
