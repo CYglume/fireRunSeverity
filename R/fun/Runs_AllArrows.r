@@ -159,6 +159,7 @@ Runs2 <- function(AllPols, CRSproject=terra::crs(AllPols), nameID, nameFeho, Win
 
           # stick each run from the different polygons within an hour
           PerPoligonMaxims_wind <- rbind(PerPoligonMaxims_wind, MakeTable)
+          rm(MakeTable)
         } # end wind section
 
         if (flagRuns %in% c("both", "pols")) {
@@ -200,6 +201,7 @@ Runs2 <- function(AllPols, CRSproject=terra::crs(AllPols), nameID, nameFeho, Win
           } # end while
 
           PerPoligonMaxims_pol <- rbind(PerPoligonMaxims_pol, MakeTable_pol)
+          rm(MakeTable_pol)
         } # end pol section
       } # end per polygon loop
     } # end isolated polygon
@@ -320,6 +322,7 @@ Runs2 <- function(AllPols, CRSproject=terra::crs(AllPols), nameID, nameFeho, Win
               }
               # stick each run from the different polygons within an hour
               PerPoligonMaxims_wind <- rbind(PerPoligonMaxims_wind, MakeTable)
+              rm(MakeTable)
             } # end wind section
 
             if (flagRuns %in% c("both", "pols")) {
@@ -399,7 +402,7 @@ Runs2 <- function(AllPols, CRSproject=terra::crs(AllPols), nameID, nameFeho, Win
           Outer <- PerPoligonMaxims_wind[polygon, c("CoordXTo", "CoordYTo")]
           names(Outer) <- c("x", "y")
           xy <- as.matrix(rbind(Inner, Outer))
-          LinXY <- terra::vect(xy, "lines", crs = CRSproject, atts = PerPoligonMaxims_wind[, c(1, 2, 3, 6, 11, 12, 13)])
+          LinXY <- terra::vect(xy, "lines", crs = CRSproject, atts = PerPoligonMaxims_wind[polygon, c(1, 2, 3, 6, 11, 12, 13)])
           Nameslist[[length(Nameslist) + 1]] <- LinXY
         }#end create wind lines
       } # end if there is a run
@@ -416,7 +419,7 @@ Runs2 <- function(AllPols, CRSproject=terra::crs(AllPols), nameID, nameFeho, Win
           Outer <- PerPoligonMaxims_pol[polygon, c("CoordXTo", "CoordYTo")]
           names(Outer) <- c("x", "y")
           xy <- as.matrix(rbind(Inner, Outer))
-          LinXY_pol <- terra::vect(xy, "lines", crs = CRSproject, atts = PerPoligonMaxims_pol[, c(1, 2, 3, 6, 11, 12, 13)])
+          LinXY_pol <- terra::vect(xy, "lines", crs = CRSproject, atts = PerPoligonMaxims_pol[polygon, c(1, 2, 3, 6, 11, 12, 13)])
           Nameslist_pol[[length(Nameslist_pol) + 1]] <- LinXY_pol
         } #end create polygon lines
       } # end if there is a run
