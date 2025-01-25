@@ -47,17 +47,29 @@ if (any(!dir.exists(dt_folder))) {
 # Create sub folders for fire runs
 dt_folder <- list.dirs("src/fireRaw", recursive = F)
 if (length(dt_folder) != 0) {
+  # Run for each AOI folder in fireRaw
   for (di in dt_folder) {
+    fname_list <- list.files(di, full.names = T)
+    fname_list <- fname_list[!file.info(fname_list)$isdir]
+    
+    # Create new folder names in data folder
     di <- basename(di)
     dir_path <- file.path(root_folder, run_DataDir, di, "input")
+    
+    # Create data folder and copy files from fireRaw/AOI
     if (!dir.exists(dir_path)) {
       dir.create(dir_path, recursive = TRUE)
+      #Copy files each by each
+      for (path_f in fname_list){
+        path_t = paste(dir_path, basename(path_f), sep="/")
+        file.copy(from = path_f, to = path_t, recursive = F)
+      }
       message(paste("Created folder:", di))
     } else {
       message(cli::col_blue(paste("Folder exists:", di)))
     }
   }
 }
-rm(di, dt_folder, dir_path)
+rm(di, dt_folder, dir_path, fname_list, path_f, path_t)
 #------------------------------
 

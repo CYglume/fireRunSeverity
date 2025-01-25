@@ -5,6 +5,7 @@ R/analysisRuns.R
 # Data
 /data/
 /src/fireRaw/*
+!/src/fireRaw/README.md
 
 #credential
 R/.credential.R
