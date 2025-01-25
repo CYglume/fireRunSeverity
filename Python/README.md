@@ -1,9 +1,19 @@
+**Quick reference: [Installation](#installation) &rarr; [API Set Up](#online-api-set-up) &rarr; [Operation](#operation)**
+
 # Installation
 - Get Python from [Python.org](https://www.python.org/)
 - The project folder `fireRunSeverity` is assumed to be placed under %userprofile%
   - i.e. C:\Users\user\fireRunSeverity
 
-## Install Poetry for package management
+## 1. Direct install packages
+- `python -m pip install [dependencies]`
+- Refer to [`pyproject.toml`](./pyproject.toml)
+- Install dependencies listed in `tool.poetry.dependencies`
+- Package needed for current project: \
+   `earthengine-api`, `geemap`, `geopandas`, `google-auth-oauthlib`
+
+## 2. Project management through `Poetry`
+### Install `Poetry` for package management
 - Adopted from [poetry website](https://python-poetry.org/docs/#installing-manually)
 - Type in command line (replace `%VENV_PATH%` with any path for any prefered place)
 ```{python}
@@ -13,7 +23,7 @@ python -m venv %VENV_PATH%
 %VENV_PATH%/bin/pip install poetry
 ```
 
-## Install packages for GEE and Drive API
+### Install packages for GEE and Drive API
 - switch to Python folder in this project: `fireRunSeverity/Python`
 - intall using `pyproject.toml` file provided (automatically done by poetry) 
 ```
@@ -22,7 +32,8 @@ cd %userprofile%/fireRunSeverity/Python
 poetry install
 ```
 
-# GEE project setup
+# Online API set up
+## GEE project setup
 **Necessary for `severityCalc`**(.py/.ipynb)
 
 You will need to setup GEE project in your Google account to continue with Python API.
@@ -38,7 +49,7 @@ You will need to setup GEE project in your Google account to continue with Pytho
   - Enable the API in the intro page
   ![GEE API Screenshot](man/gee_API.png)
 
-# Google Drive API setup
+## Google Drive API setup
 **Necessary for `driveDownload`**(.py/.ipynb)
 
 Check the [Google document](https://developers.google.com/drive/activity/v2/quickstart/python) for detailed instructions.
@@ -54,16 +65,21 @@ Check the [Google document](https://developers.google.com/drive/activity/v2/quic
   7. Save file as `.credential.json` under folder `fireRunSeverity/Python/geeFetch`
 
 # Operation
-For simple usage, one can just operate algorithms on Jupyter notebooks located in the [notebook folder](/geeFetch/notebook/), where the code was mainly tested and will be later integrated into `geeFetch/main.py`.
 
-Always select the Python under the virtual environment (`%VENV_PATH%`) you set up [here](#install-poetry-for-package-management) as the default Python engine no matter you are using Jupyter notebook or command prompt.
+- Make sure the fire perimeter data (.shp) is located in `fireRunSeverity/data/fireruns/(aoi_name)/input` for the algorithm to get the input data
+
+- For simple usage, one can just operate algorithms on Jupyter notebooks located in the [notebook folder](/geeFetch/notebook/), where the code was mainly tested and will be later integrated into `geeFetch/main.py`.
 
 The `force` option was set as `True` in `ee.Authenticate` to ensure reproducibility. You can change the option to `False` so that login won't be necessary every time on the same computer.
 
 ## Login process in `ee.Authenticate()`
 After `ee.Authenticate()` is activated, login website will prompt up for google account login. Use the account that has [GEE project setup](#gee-project-setup). Follow the instruction to grant all access for the app (i.e. Python API), and paste the generated token back to the command promt or Jupyter notebook being operated.
 
-## Everytime setup
+---
+
+## Everytime setup (For `Poetry`)
+(**For `Poetry` package management**) Always select the Python under the virtual environment (`%VENV_PATH%`) you set up [here](#install-poetry-for-package-management) as the default Python engine no matter you are using Jupyter notebook or command prompt.
+
 - Add virtual env of poetry to PATH temporarily
   - `set PATH=%userprofile%/mapGee/Scripts/;%PATH%`
 
