@@ -5,32 +5,13 @@
 - The project folder `fireRunSeverity` is assumed to be placed under %userprofile%
   - i.e. C:\Users\user\fireRunSeverity
 
-## 1. Direct install packages
+## Direct install packages
 - `python -m pip install [dependencies]`
 - Refer to [`pyproject.toml`](./pyproject.toml)
 - Install dependencies listed in `tool.poetry.dependencies`
 - Package needed for current project: \
    `earthengine-api`, `geemap`, `geopandas`, `google-auth-oauthlib`
 
-## 2. Project management through `Poetry`
-### Install `Poetry` for package management
-- Adopted from [poetry website](https://python-poetry.org/docs/#installing-manually)
-- Type in command line (replace `%VENV_PATH%` with any path for any prefered place)
-```{python}
-set VENV_PATH=%userprofile%/mapGee
-python -m venv %VENV_PATH%
-%VENV_PATH%/bin/pip install -U pip setuptools
-%VENV_PATH%/bin/pip install poetry
-```
-
-### Install packages for GEE and Drive API
-- switch to Python folder in this project: `fireRunSeverity/Python`
-- intall using `pyproject.toml` file provided (automatically done by poetry) 
-```
-set PATH=%VENV_PATH%/Scripts/;%PATH%
-cd %userprofile%/fireRunSeverity/Python
-poetry install
-```
 
 # Online API set up
 ## GEE project setup
@@ -76,6 +57,26 @@ The `force` option was set as `True` in `ee.Authenticate` to ensure reproducibil
 After `ee.Authenticate()` is activated, login website will prompt up for google account login. Use the account that has [GEE project setup](#gee-project-setup). Follow the instruction to grant all access for the app (i.e. Python API), and paste the generated token back to the command promt or Jupyter notebook being operated.
 
 ---
+
+# Project management through `Poetry` (Optional) 
+### Install `Poetry` for package management
+- Adopted from [poetry website](https://python-poetry.org/docs/#installing-manually)
+- Type in command line (replace `%VENV_PATH%` with any path for any prefered place)
+```{python}
+set VENV_PATH=%userprofile%/mapGee
+python -m venv %VENV_PATH%
+%VENV_PATH%/bin/pip install -U pip setuptools
+%VENV_PATH%/bin/pip install poetry
+```
+
+### Install packages for GEE and Drive API
+- switch to Python folder in this project: `fireRunSeverity/Python`
+- intall using `pyproject.toml` file provided (automatically done by poetry) 
+```
+set PATH=%VENV_PATH%/Scripts/;%PATH%
+cd %userprofile%/fireRunSeverity/Python
+poetry install
+```
 
 ## Everytime setup (For `Poetry`)
 (**For `Poetry` package management**) Always select the Python under the virtual environment (`%VENV_PATH%`) you set up [here](#install-poetry-for-package-management) as the default Python engine no matter you are using Jupyter notebook or command prompt.
