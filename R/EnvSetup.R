@@ -15,11 +15,11 @@ er5_DataDir  <- r"(data/ER5)"
 # install.packages("ecmwfr")
 library(ecmwfr)
 library(FireRuns)
-library(sf)
 library(ggplot2)
-library(tidyterra)
 library(ggpubr)
 library(tidyverse)
+library(tidyterra)
+library(sf)
 source("R/fun/Runs_AllArrows.R", echo = FALSE)
 source("R/fun/Data_Function.R", echo = FALSE)
 
@@ -70,6 +70,10 @@ if (length(dt_folder) != 0) {
     }
   }
 }
-rm(di, dt_folder, dir_path, fname_list, path_f, path_t)
+
+# Clear unused variable
+rmLst <- c("di", "dt_folder", "dir_path", "fname_list", "path_f", "path_t")
+rmLst <- rmLst[which(sapply(rmLst, exists))]
+rm(list = c(rmLst, "rmLst"))
 #------------------------------
 
