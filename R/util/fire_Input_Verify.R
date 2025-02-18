@@ -5,8 +5,8 @@
 # 1. check if `FeHo` exists for later data processing
 # 2. check if unique `OBJECTID` exists
 # -------------------------------------------------------------------------
-
-
+root_folder <- rprojroot::find_rstudio_root_file()
+source(file.path(root_folder, "R/EnvSetup.R"), echo = FALSE)
 
 # -------------------------------------------------------------------------
 ########################################

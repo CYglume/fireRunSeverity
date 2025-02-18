@@ -4,25 +4,27 @@ root_folder <- rprojroot::find_rstudio_root_file()
 run_DataDir  <- r"(data/fireruns)"
 idcs_DataDir <- r"(data/GEE)"
 er5_DataDir  <- r"(data/ER5)"
-
+setwd(root_folder)
 
 # Load Packages -----------------------------------------------------------
 # Install needed packages
 # require(devtools)
 # install_github("AndreaDuane/FireRuns")
-# install.packages('tidyterra')
-# install.packages("ggpubr")
-# install.packages("ecmwfr")
-library(ecmwfr)
 library(FireRuns)
-library(ggplot2)
-library(ggpubr)
-library(tidyverse)
-library(tidyterra)
-library(sf)
+
+
+# Load required packages
+packagesToLoad <- c("tidyverse", "tidyterra", "ggpubr", "ecmwfr", "sf", "lutz")
+for (package in packagesToLoad) {
+  if (!require(package, character.only = TRUE)) {
+    install.packages(package)
+    library(package, character.only = TRUE)
+  }
+}
+
+# Load Project Source files
 source("R/fun/Runs_AllArrows.R", echo = FALSE)
 source("R/fun/Data_Function.R", echo = FALSE)
-
 
 
 #---- Create Data folder ------

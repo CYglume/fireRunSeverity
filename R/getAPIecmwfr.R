@@ -48,7 +48,7 @@ for (AreaName in AreaList){
   
   # Check if wind table already exists
   if (file.exists(wind_tbl_path)){
-    message(cli::col_blue(paste("Wind CSV File exists:\n", wind_tbl_path)))
+    message(cli::col_blue(paste("\nWind CSV File exists:\n", wind_tbl_path)))
     next
   }
   message(paste0("\n-- Ceating Wind table for AOI: ", AreaName))
@@ -77,30 +77,45 @@ for (AreaName in AreaList){
     message(cli::col_blue(paste("Folder exists:", dir_path)))
   }
   
+  
+  #Find the correct time zone for Fire polygons
+  tzName <- ext(vFireIn) %>% 
+    as.polygons(crs = crs(vFireIn)) %>% 
+    centroids() %>% 
+    st_as_sf() %>% 
+    tz_lookup(method = "accurate")
+  message(paste0("Time zone found by coordinates: ", tzName))
+  
   # Fetch Wind data from ER5 and produce dataframe per Feho
   wind_Feho = data.frame()
   for (i in 1:nrow(FeHo_tbl)) {
     fhGet = FeHo_tbl$FeHo[i]
     message(paste0("FeHo ", i, ":", fhGet))
-    fhTime = as.POSIXct(fhGet, format = "%Y/%m/%d_%H%M", tz = "UTC")
+    fhTime = as.POSIXct(fhGet, format = "%Y/%m/%d_%H%M", tz = tzName)
     stmp_tt = format(fhTime, "%Y%m%d_%H%M")
     stmp_tt = paste("FeHo", stmp_tt, sep = "_")
     
     # Calculate time range for retrieving ER5 wind data
+    # Round the previous FeHo time to generate time series ON THE HOUR
     if (i == 1){
       fhTime_pre  = fhTime - 2*60*60
+      fhTime_pre  = floor_date(fhTime_pre, unit = "hour")
       stmp_tt = paste(stmp_tt, "first", sep = "_")
     } else {
       fhGet_pre = FeHo_tbl$FeHo[i-1]
-      fhTime_pre = as.POSIXct(fhGet_pre, format = "%Y/%m/%d_%H%M", tz = "UTC")
+      fhTime_pre = as.POSIXct(fhGet_pre, format = "%Y/%m/%d_%H%M", tz = tzName)
+      fhTime_pre = floor_date(fhTime_pre, unit = "hour")
     }
     
     # Produce API time list
     fh_Lst <- seq.POSIXt(fhTime_pre, fhTime, by = "hour")
+    fh_Lst <- with_tz(fh_Lst, "UTC")
     yy = unique(format(fh_Lst, "%Y"))
     mm = unique(format(fh_Lst, "%m"))
     dd = unique(format(fh_Lst, "%d"))
     tt = unique(format(fh_Lst, "%H:%M"))
+    message(cli::col_blue("Get hours:"))
+    message(cli::col_blue(paste0(tt, collapse = ", ")))
     
     # Get the desired extent for raster wind
     feat_fh <- vFireIn %>% 
@@ -210,7 +225,7 @@ for (AreaName in AreaList){
   
   # Add codi_hora for process in FireRuns algorithm
   wind_Feho$codi_hora = seq(nrow(wind_Feho))
-  write.csv(wind_Feho[,c(3,2,1)], 
+  write.csv(wind_Feho[,c(3,2,1)],
             file = wind_tbl_path,
             row.names = FALSE)
   message(paste0("\n-- END of Writing Wind table for AOI: ", AreaName, "-------- \n"))
