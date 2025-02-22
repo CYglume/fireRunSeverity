@@ -4,6 +4,7 @@
 # Input: data/FirstWildfires/
 # ------------------------------------------------------------------------------
 source("R/EnvSetup.R", echo = TRUE)
+source("R/fun/Runs_AllArrows.R", echo = FALSE)
 
 # area_process("GIF14_Au")
 # area_process("LaJonquera", nameID = "ObjectID")

@@ -4,6 +4,7 @@ root_folder <- rprojroot::find_rstudio_root_file()
 run_DataDir  <- r"(data/fireruns)"
 idcs_DataDir <- r"(data/GEE)"
 er5_DataDir  <- r"(data/ER5)"
+stats_DataDir  <- r"(data/Stats)"
 setwd(root_folder)
 
 # Load Packages -----------------------------------------------------------
@@ -23,7 +24,6 @@ for (package in packagesToLoad) {
 }
 
 # Load Project Source files
-source("R/fun/Runs_AllArrows.R", echo = FALSE)
 source("R/fun/Data_Function.R", echo = FALSE)
 
 
@@ -31,6 +31,7 @@ source("R/fun/Data_Function.R", echo = FALSE)
 dt_folder <- c(run_DataDir, 
                idcs_DataDir, 
                er5_DataDir,
+               stats_DataDir,
                "src/fireRaw")
 
 if (any(!dir.exists(dt_folder))) {
@@ -77,5 +78,6 @@ if (length(dt_folder) != 0) {
 rmLst <- c("di", "dt_folder", "dir_path", "fname_list", "path_f", "path_t")
 rmLst <- rmLst[which(sapply(rmLst, exists))]
 rm(list = c(rmLst, "rmLst"))
+gc()
 #------------------------------
 

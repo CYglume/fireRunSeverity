@@ -3,7 +3,7 @@
 ## Considering the folder structure created by `EnvSetup.R`
 # -------------------------------------------------------------------------
 
-# Functions ---------------------------------------------------------------
+# Fire run Functions ---------------------------------------------------------------
 fetch_firePeri <- function(AreaName){
   # Get fire fronts shp file
   path <- file.path(root_folder, run_DataDir, AreaName)
@@ -72,7 +72,9 @@ plot_FireRun <- function(vfire, vrun, nameFeho_i = "FeHo"){
     geom_spatvector(aes(fill = factor(.data[[nameFeho_i]])), vfire)+
     # scale_fill_brewer(palette = "OrRd")+
     scale_fill_manual(values = custom_colors)+
-    geom_spatvector(data = vrun, color = "blue", linewidth = 1,
+    geom_spatvector(data = vrun %>% 
+                      filter(Distance != 0), 
+                    color = "blue", linewidth = 1,
                     arrow = arrow(angle = 45,
                                   ends = "last",
                                   type = "open",
@@ -197,7 +199,7 @@ wind_csv_Check <- function(AreaName, to_save = F){
   setwd(file.path(root_folder, run_DataDir, AreaName))
   csv_i <- fs::dir_ls("./input", glob = "*.csv")
   if (file.exists("input/TesaureWind.csv")){
-    WTabHr <- read.csv("input/TesaureWind.csv", header = T, sep = ";")
+    WTabHr <- read.csv("input/TesaureWind.csv", header = T)
     message("Wind data get:")
     print(WTabHr)
     if(WTabHr[['codi_hora']][1] != 1) {
@@ -206,6 +208,7 @@ wind_csv_Check <- function(AreaName, to_save = F){
     }
     
   } else {
+    setwd(root_folder)
     stop("Can't find input/TesaureWind.csv!\nFetch wind data and try again!")
   }
   
@@ -217,3 +220,16 @@ wind_csv_Check <- function(AreaName, to_save = F){
   setwd(root_folder)
   return(WTabHr)
 }
+
+
+# Stats functions ---------------------------------------------------------
+
+mode_fn <- function(x) {
+  ux <- unique(x)
+  return(ux[which.max(tabulate(match(x, ux)))])
+}
+
+se <- function(x){
+  return(sd(x)/sqrt(length(x)))
+}
+
