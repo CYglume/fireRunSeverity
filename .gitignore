@@ -1,6 +1,6 @@
 # Temporarily disabled (still testing)
 R/work_script.R
-R/analysisRuns.R
+Python/geeFetch/Run_all_conda.bat
 
 # Data
 /data/
@@ -11,6 +11,10 @@ R/analysisRuns.R
 R/.credential.R
 Python/geeFetch/.credential.json
 Python/geeFetch/.token.json
+
+#virtual environments
+Python/.venv
+
 
 # History files
 .Rhistory
