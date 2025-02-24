@@ -12,8 +12,7 @@
 
 run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons, 
                                  raster_Indices, wind_Table, quiet = F){
-  rm(RUN_idcs, OUTOF_RUN_idcs)
-  
+  # Get list of valid OBJECTID with runs
   periIDLst <- run_Polygons$ID
   for (objID in periIDLst){
     if (!quiet){

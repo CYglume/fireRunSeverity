@@ -10,19 +10,18 @@ if (file.exists(file.path(stats_DataDir, "sevExtract.RData"))){
 }
 
 AreaList <- basename(list.dirs(file.path(run_DataDir), recursive = F))
-AreaName = AreaList[1]
-dt_fld <- file.path(root_folder, run_DataDir, AreaName, "input")
-AreaName
 buffer_m <- 100 #meter
 
 if (exists("all_StatsLst")){rm(all_StatsLst)}
 for (AreaName in AreaList) {
   message(paste("\n----------------------------------------------"))
   message(paste("Processing AOI:", AreaName))
+  dt_fld <- file.path(root_folder, run_DataDir, AreaName, "input")
+  
   # Get raster indices ------------------------------------------------------
   # aoi_idcs <- paste(idcs_DataDir, AreaName, "old", sep = "/")
   aoi_idcs <- paste(idcs_DataDir, AreaName, sep = "/")
-  ids_lst <- list.files(aoi_idcs, pattern = ".tif")
+  ids_lst <- list.files(aoi_idcs, pattern = ".tif$")
   if(length(ids_lst) == 0){
     message(paste("\nNo severity map found in folder:", aoi_idcs, "!!"))
     message(paste("\n----------------------------------------------"))
@@ -40,7 +39,7 @@ for (AreaName in AreaList) {
   
   
   ## Load raster data and stack rasters together
-  rm(ras_idcs)
+  if (exists("ras_idcs")){rm(ras_idcs)}
   for (i in 1:nrow(ids)){
     ras <- rast(ids$loc[i])
     if (!exists("ras_idcs")){
