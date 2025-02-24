@@ -10,7 +10,6 @@ if (file.exists(file.path(stats_DataDir, "sevExtract.RData"))){
 }
 
 AreaList <- basename(list.dirs(file.path(run_DataDir), recursive = F))
-buffer_m <- 100 #meter
 
 if (exists("all_StatsLst")){rm(all_StatsLst)}
 for (AreaName in AreaList) {
@@ -65,12 +64,11 @@ for (AreaName in AreaList) {
   vect_Run  <- project(vect_Run, crs(ras_idcs))
   vect_Peri <- project(vect_Peri, crs(ras_idcs))
   
-  runs_buffer <- buffer(vect_Run, width=buffer_m)
   
   message(cli::col_blue(" -- Running Indices Extraction..."))
   tp_StatsLst <- run_Extract_severity(aoi_Name        = AreaName,
                                       fire_Perimeters = vect_Peri, 
-                                      run_Polygons    = runs_buffer, 
+                                      run_Polygons    = vect_Run, 
                                       raster_Indices  = ras_idcs, 
                                       wind_Table      = windTbl)
   

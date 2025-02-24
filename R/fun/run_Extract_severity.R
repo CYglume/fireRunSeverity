@@ -31,6 +31,7 @@ run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons,
     
     Peri_i <- fire_Perimeters %>% filter(OBJECTID == objID)
     Run_i <- run_Polygons %>% filter(ID == objID)
+    Run_i <- buffer(Run_i, Run_i$Distance*0.1) #Set up buffer as 10% of the fire run distance
     
     # Perform the clipping
     clp_Run <- terra::intersect(Run_i, Peri_i)
@@ -73,8 +74,16 @@ run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons,
     
     # 4. random sample the pixels
     # Sample the valid cells in size of extracted cell counts
-    valid_cells       <- which(!is.na(values(r[[1]])))
-    sample_cells      <- sample(valid_cells, size=length(run_idcs$cell), replace=FALSE)
+    valid_cells   <- which(!is.na(values(r[[1]])))
+    if (length(valid_cells) <= length(run_idcs$cell)){
+      # If cells for run indices not less than the rest
+      # Use all left cells
+      message("!----- Left pixels for sample no more than already used!")
+      sample_cells  <- valid_cells
+    }else{
+      # Sample cells at the same size as run indices
+      sample_cells  <- sample(valid_cells, size = length(run_idcs$cell), replace=FALSE)
+    }
     ##
     if (!quiet){message(cli::col_blue(" ----- Extracting indices for the rest of AOI"))}
     sampled_rest_area <- terra::extract(r, sample_cells) %>% data.frame(cell = sample_cells)
