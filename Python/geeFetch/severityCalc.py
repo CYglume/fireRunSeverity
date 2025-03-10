@@ -152,8 +152,11 @@ for in_Name in AreaList:
     S2pre_id_m = func_calcIndices(S2pre_mean)
     S2pos_id_m = func_calcIndices(S2pos_mean)
 
-    S2_idcs1  = S2pre_id.select("NBR").subtract(S2pos_id.select("NBR")).multiply(1000).rename("dNBR")
+    # dNBR
+    S2_idcs1  = S2pre_id.select("NBR").subtract(S2pos_id.select("NBR")).multiply(1000).rename("Cl_dNBR")
     S2_idcs1  = S2_idcs1.addBands(S2pre_id_m.select("NBR").subtract(S2pos_id_m.select("NBR")).multiply(1000).rename("M_dNBR"))
+
+    # Other indices
     S2_idcs1  = S2_idcs1.addBands([S2pre_id.select("NBR").rename("preNBR"), 
                                 S2pos_id.select("NBR").rename("posNBR"),
                                 S2pre_id_m.select("NBR").rename("M_preNBR"), 

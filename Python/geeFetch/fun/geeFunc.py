@@ -28,15 +28,15 @@ def func_calcIndices2(image):
     RBR   = image.expression(
         "dNBR / (preNBR + 1.001)", {
             "preNBR": image.select('preNBR'),
-            "dNBR": image.select('dNBR') 
+            "dNBR": image.select('Cl_dNBR') 
         }
-    ).rename('RBR').toFloat()
+    ).rename('Cl_RBR').toFloat()
     RdNBR = image.expression(
         "(abs(preNBR) < 0.001) ? dNBR/sqrt(0.001) : dNBR/sqrt(abs(preNBR))",{
             "preNBR": image.select('preNBR'),
-            "dNBR": image.select('dNBR')
+            "dNBR": image.select('Cl_dNBR')
         }
-    ).rename("RdNBR").toFloat()
+    ).rename("Cl_RdNBR").toFloat()
     M_RBR   = image.expression(
         "dNBR / (preNBR + 1.001)", {
             "preNBR": image.select('M_preNBR'),
