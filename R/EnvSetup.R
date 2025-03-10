@@ -5,6 +5,7 @@ run_DataDir  <- r"(data/fireruns)"
 idcs_DataDir <- r"(data/GEE)"
 er5_DataDir  <- r"(data/ER5)"
 stats_DataDir  <- r"(data/Stats)"
+stats_PlotDir   <- r"(man/sPlot)"
 setwd(root_folder)
 
 # Load Packages -----------------------------------------------------------
@@ -32,6 +33,7 @@ dt_folder <- c(run_DataDir,
                idcs_DataDir, 
                er5_DataDir,
                stats_DataDir,
+               stats_PlotDir,
                "src/fireRaw")
 
 if (any(!dir.exists(dt_folder))) {

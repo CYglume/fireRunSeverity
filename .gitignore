@@ -1,6 +1,7 @@
 # Temporarily disabled (still testing)
 R/work_script.R
-Python/geeFetch/Run_all_conda.bat
+man/sPlot
+man/Demo
 
 # Data
 /data/
@@ -14,6 +15,7 @@ Python/geeFetch/.token.json
 
 #virtual environments
 Python/.venv
+Python/geeFetch/Run_all_conda.bat
 
 
 # History files

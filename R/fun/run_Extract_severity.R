@@ -64,8 +64,8 @@ run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons,
     ##
     if (!quiet){message(cli::col_blue(" ----- Extracting indices for fire run"))}
     run_idcs <- terra::extract(i_ras_idcs, clp_Run,
-                               na.rm=TRUE, touches = T, cells = T)
-    
+                               touches = T, cells = T)
+    run_idcs = na.omit(run_idcs) # remove NA pixels caused by GEE cloud filtering
     
     # 3. use the cell numbers to remove raster values
     r = i_ras_idcs
