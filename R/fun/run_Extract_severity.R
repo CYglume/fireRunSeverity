@@ -12,6 +12,9 @@
 
 run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons, 
                                  raster_Indices, wind_Table, quiet = F){
+  #Pre-set variables
+  buffer_width = 30 #meter
+  
   # Get list of valid OBJECTID with runs
   periIDLst <- run_Polygons$ID
   for (objID in periIDLst){
@@ -30,8 +33,14 @@ run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons,
     ###########################################################
     
     Peri_i <- fire_Perimeters %>% filter(OBJECTID == objID)
+    if (expanse(Peri_i)/10000 < 1){ # Skip loop if perimeter polygon is smaller than 1 ha
+      message(paste("!--- Skipping for low polygon area:", 
+                    round(expanse(Peri_i)/10000, 3), "ha"))
+      next
+    }
+    
     Run_i <- run_Polygons %>% filter(ID == objID)
-    Run_i <- buffer(Run_i, Run_i$Distance*0.1) #Set up buffer as 10% of the fire run distance
+    Run_i <- buffer(Run_i, buffer_width) #Set up buffer as pre-set value
     
     # Perform the clipping
     clp_Run <- terra::intersect(Run_i, Peri_i)
