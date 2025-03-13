@@ -15,6 +15,9 @@ source(file.path(root_folder, "R/EnvSetup.R"), echo = FALSE)
 ########################################
 
 AreaList <- basename(list.dirs(file.path(run_DataDir), recursive = F))
+
+
+# -------------------------------------------------------------------------
 AreaName = AreaList[6]
 AreaName
 # Get fire fronts shp file
@@ -74,7 +77,43 @@ vFireIn$FeHo
 vFireIn$OBJECTID
 unique(vFireIn$OBJECTID)
 
+
+
 # !! Write Spatial vector into file !!
 # writeVector(vFireIn, shpIn, overwrite = TRUE)
 setwd(root_folder)
 # -------------------------------------------------------------------------
+
+# -------------------------------------------------------------------------
+# Check complete separation of polygons
+message("\n---- Checking polygon counts ----")
+for (aa in AreaList){
+  message(paste(" - AOI:", aa))
+  # Get fire fronts shp file
+  setwd(file.path(root_folder, run_DataDir, aa))
+  shpIn <- fs::dir_ls("./input", glob = "*.shp")
+  vFireIn <- vect(shpIn)
+  
+  ngeom <- vFireIn %>% disagg() %>% nrow()
+  if (ngeom != nrow(vFireIn)){
+    message(" -- Small non-separated geometries found!")
+    message(paste(" -- ID count:", nrow(vFireIn), "Geom found:", ngeom))
+    if ("OBJECTID" %in% names(vFireIn)){
+      vFireIn <- vFireIn %>% 
+        rename(OBJECTID_old = OBJECTID)
+    }
+    vFireIn <- vFireIn %>% 
+      disagg() %>% 
+      mutate(OBJECTID = row_number())
+    # print(head(vFireIn))
+    
+    message("\n -- Writing modified SpatVector into shpIn...")
+    # !! Write Spatial vector into file !!
+    writeVector(vFireIn, shpIn, overwrite = TRUE)
+  }else{
+    message(" -- OBJECTID matched polygon counts.")
+  }
+  message(" ---\n")
+  
+  setwd(root_folder)
+}
