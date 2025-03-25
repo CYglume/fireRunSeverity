@@ -202,6 +202,10 @@ for in_Name in AreaList:
 
     indices_final = func_calcIndices2(indices_first)
     
+    # Environmental factors
+    terrain = ee.Terrain.products(SRTM.clip(clipAOI2));
+    indices_final = indices_final.addBands([SRTM.clip(clipAOI2).select('elevation').rename('env_elevation'),
+                                            terrain.select('aspect').rename('env_aspect'),])
 
     ##########################
     #   Image Exportation    #
