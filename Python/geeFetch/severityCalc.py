@@ -9,8 +9,8 @@ import pytz
 from zoneinfo import ZoneInfo
 from fun.geeFunc import *
 
-ee.Authenticate(force=False)
-ee.Initialize(project = "geefiresever") # specify the project name in the argument.
+ee.Authenticate(force=True)
+ee.Initialize(project = "project-ID") # specify the project name in the argument.
 print(ee.String('Hello from the Earth Engine servers!').getInfo())
 
 # To get root path under project folder structure
@@ -65,6 +65,11 @@ for in_Name in AreaList:
     json_polygon = mapping(bounds_polygon)
     print(json_polygon)
 
+    # ----------------------------------------------- #
+    # Check if any index map has been calculated
+    outGEEFLD = os.path.join(root_folder, 'data', 'GEE', in_Name)
+    exist_indicesList = os.listdir(outGEEFLD)
+    exist_indicesList = [f.split("--")[0] for f in exist_indicesList if os.path.isfile(os.path.join(outGEEFLD, f))]
 
     # ----------------------------------------------- #
     ##########################
@@ -225,6 +230,10 @@ for in_Name in AreaList:
     tStamp = datetime.now().strftime("%d%m%Y_%H%M")
     datasetName = "L7" if L7_flag else "S2"
     for bd_i in bd:
+        if f'{datasetName}_{bd_i}' in exist_indicesList:
+            # skip map production if index maps already exist in local folder
+            continue
+
         export_task = ee.batch.Export.image.toDrive(
             image=indices_for_output.select(bd_i),
             description='sentinel2_fire_indices_image_export',
