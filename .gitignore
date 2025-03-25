@@ -16,6 +16,7 @@ Python/geeFetch/.token.json
 
 #virtual environments
 Python/.venv
+Python/poetry.lock
 Python/geeFetch/Run_all_conda.bat
 
 
