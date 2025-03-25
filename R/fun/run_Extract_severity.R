@@ -87,7 +87,7 @@ run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons,
     if (length(valid_cells) <= length(run_idcs$cell)){
       # If cells for run indices not less than the rest
       # Use all left cells
-      message("!----- Left pixels for sample no more than already used!")
+      message("!----- Pixels left for sample no more than already used!")
       sample_cells  <- valid_cells
     }else{
       # Sample cells at the same size as run indices

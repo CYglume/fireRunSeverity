@@ -2,6 +2,7 @@
 R/work_script.R
 man/sPlot
 man/Demo
+R/stats
 
 # Data
 /data/

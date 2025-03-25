@@ -233,3 +233,16 @@ se <- function(x){
   return(sd(x)/sqrt(length(x)))
 }
 
+idcs_longer <- function(df){
+  df %>% 
+    pivot_longer(starts_with(c("M_", "Cl_")),
+                 # names_to      = c("timeCollapse", "idcs"),
+                 # names_pattern = "([^_]*)_(.*)",
+                 names_to      = c("timeCollapse", "idcs", "idStats"),
+                 names_sep = "_",
+                 values_to     = "severity") %>% 
+    mutate(timeCollapse = case_match(timeCollapse,
+                                     "Cl"~ "Mosaic",
+                                     "M" ~ "StackMean",
+                                     .default = timeCollapse))
+}

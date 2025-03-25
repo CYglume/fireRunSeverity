@@ -1,7 +1,11 @@
 # ------------------------------------------------------------------------------
-# Description: analysis of fire severity with fire runs (main task)
-# 
-# Input: idcs_DataDir <- r"(data/GEE)"
+# Description: analysis of fire severity with fire runs 
+# 1. Extract the pixel values to fire runs for further analysis
+# 2. Fireruns: FullPol & FullWind (2 different scenarios)
+# 3. Severity indices: dNBR, RBR, RdNBR
+#
+# Input : idcs_DataDir <- r"(data/GEE)"
+# Output: all_StatsLst
 # ------------------------------------------------------------------------------
 source("R/EnvSetup.R", echo = TRUE)
 source("R/fun/run_Extract_severity.R")
@@ -48,35 +52,41 @@ for (AreaName in AreaList) {
     }
   }
   
-  
-  # Get vector FireRuns -----------------------------------------------------
-  vect_Run <- fetch_fireRun(AreaName, "FullWind")
-  vect_Peri <- fetch_firePeri(AreaName)
-  windTbl  <- read.csv(file.path(dt_fld, "TesaureWind.csv"), header = T)
-  
-  # Filter out zero length fire runs
-  vect_Run <- vect_Run %>%
-    filter(Distance > 0) %>% 
-    left_join(vect_Peri %>% select(OBJECTID, FeHo) %>% as_tibble(),
-              by = join_by(ID == OBJECTID))
-  
-  # Re-project fire runs and perimeter vectors to crs of raster indices (EPSG:4326)
-  vect_Run  <- project(vect_Run, crs(ras_idcs))
-  vect_Peri <- project(vect_Peri, crs(ras_idcs))
-  
-  
-  message(cli::col_blue(" -- Running Indices Extraction..."))
-  tp_StatsLst <- run_Extract_severity(aoi_Name        = AreaName,
-                                      fire_Perimeters = vect_Peri, 
-                                      run_Polygons    = vect_Run, 
-                                      raster_Indices  = ras_idcs, 
-                                      wind_Table      = windTbl)
-  
-  if (!exists("all_StatsLst")){
-    all_StatsLst = tp_StatsLst
-  }else{
-    all_StatsLst$Run <- rbind(all_StatsLst$Run, tp_StatsLst$Run)
-    all_StatsLst$OutRun <- rbind(all_StatsLst$OutRun, tp_StatsLst$OutRun)
+  for (runType in c("FullWind", "FullPol")){
+    message(cli::col_blue(paste0(" -- Extraction for FireRuns type: ", runType)))
+    # Get vector FireRuns -----------------------------------------------------
+    vect_Run <- fetch_fireRun(AreaName, runType)
+    vect_Peri <- fetch_firePeri(AreaName)
+    windTbl  <- read.csv(file.path(dt_fld, "TesaureWind.csv"), header = T)
+    
+    # Filter out zero length fire runs
+    vect_Run <- vect_Run %>%
+      filter(Distance > 0) %>% 
+      left_join(vect_Peri %>% select(OBJECTID, FeHo) %>% as_tibble(),
+                by = join_by(ID == OBJECTID))
+    
+    # Re-project fire runs and perimeter vectors to crs of raster indices (EPSG:4326)
+    vect_Run  <- project(vect_Run, crs(ras_idcs))
+    vect_Peri <- project(vect_Peri, crs(ras_idcs))
+    
+    
+    message(cli::col_blue(" -- Running Indices Extraction..."))
+    tp_StatsLst <- run_Extract_severity(aoi_Name        = AreaName,
+                                        fire_Perimeters = vect_Peri,
+                                        run_Polygons    = vect_Run,
+                                        raster_Indices  = ras_idcs,
+                                        wind_Table      = windTbl)
+
+    # Add run type flag to the data table
+    tp_StatsLst$Run$runType = runType
+    tp_StatsLst$OutRun$runType = runType
+    
+    if (!exists("all_StatsLst")){
+      all_StatsLst = tp_StatsLst
+    }else{
+      all_StatsLst$Run <- rbind(all_StatsLst$Run, tp_StatsLst$Run)
+      all_StatsLst$OutRun <- rbind(all_StatsLst$OutRun, tp_StatsLst$OutRun)
+    }
   }
   message(paste("Finished table combination"))
   message(paste("----------------------------------------------"))
