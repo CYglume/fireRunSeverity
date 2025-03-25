@@ -9,8 +9,8 @@ import pytz
 from zoneinfo import ZoneInfo
 from fun.geeFunc import *
 
-ee.Authenticate(force=True)
-ee.Initialize() # add project name in the argument if program failed. Ex. ee.Initialize(project = "project-id")
+ee.Authenticate(force=False)
+ee.Initialize(project = "geefiresever") # specify the project name in the argument.
 print(ee.String('Hello from the Earth Engine servers!').getInfo())
 
 # To get root path under project folder structure
@@ -33,7 +33,8 @@ AreaList = os.listdir(os.path.join(root_folder,run_DataDir))
 # Load Online Data Collection (Run for all process)
 # Add Earth Engine dataset
 S2_harmon = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
-
+L7_T1L2   = ee.ImageCollection("LANDSAT/LE07/C02/T1_L2")
+SRTM      = ee.Image("USGS/SRTMGL1_003")
 
 for in_Name in AreaList:
     print("\n\n ######################################################")
@@ -87,11 +88,12 @@ for in_Name in AreaList:
     print("Fire start date and end date:")
     print(dateSt, dateEd)
 
+    L7_flag = False # for using Landsat-7 dataset if burning timing before Sentinel-2
     if dateSt < date(2017, 3, 28):
-        print("!! ---------- Date out of range! ---------- !!")
-        print("----- END of AOI: ", in_Name, " -----")
-        print("######################################################\n")
-        continue
+        print("!! ---------- Date before 28 Mar 2017! ---------- !!")
+        print("----- AOI: ", in_Name, " -----")
+        print("----- Using Landsat 7 ......")
+        L7_flag = True
     
     
     # Compute the date period for retrieving Satellite img
@@ -118,61 +120,97 @@ for in_Name in AreaList:
     # Satellite Calculation  #
     ##########################
     # filter satellite data
-    bandList = ["B.", "B..", "QA60", "MSK_CLDPRB"]
-    S2_pre_select = S2_harmon.filterDate(prefire_date[0], prefire_date[1]) \
-    .filterBounds(clipAOI2).select(bandList)
-    # .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 5))
+    bandList = ["SR_B.", "SR_CLOUD_QA", "QA_PIXEL"] if L7_flag else ["B.", "B..", "QA60", "MSK_CLDPRB"]
 
-    S2_pos_select = S2_harmon.filterDate(postfire_date[0], postfire_date[1]) \
-    .filterBounds(clipAOI2).select(bandList)
-    # .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 5))
+    if not L7_flag:
+        S2_pre_select = S2_harmon.filterDate(prefire_date[0], prefire_date[1]) \
+            .filterBounds(clipAOI2).select(bandList)
+        S2_pos_select = S2_harmon.filterDate(postfire_date[0], postfire_date[1]) \
+            .filterBounds(clipAOI2).select(bandList)
+        
+        # Mosaicking composite
+        S2pre = S2_pre_select.map(func_maskClouds) \
+            .map(lambda image: func_rescale(image, scale=0.0001, offset=0)) \
+            .sort('system:time_start') \
+            .mosaic(); 
+        S2pos = S2_pos_select.map(func_maskClouds) \
+            .map(lambda image: func_rescale(image, scale=0.0001, offset=0)) \
+            .sort('system:time_start', False) \
+            .mosaic(); 
+        # print(json.dumps(S2pre.getInfo(), indent=4))
+
+        # Mean composite
+        S2pre_mean = S2_pre_select.map(func_maskClouds) \
+            .map(lambda image: func_rescale(image, scale=0.0001, offset=0)) \
+            .mean(); 
+        S2pos_mean = S2_pos_select.map(func_maskClouds) \
+            .map(lambda image: func_rescale(image, scale=0.0001, offset=0)) \
+            .mean(); 
+        # print(json.dumps(S2pre_mean.getInfo(), indent=4))
+
+        # Indices Calculation
+        pre_id   = func_calcIndices(S2pre,      RED="B4", NIR="B8", SWIR="B12")
+        pos_id   = func_calcIndices(S2pos,      RED="B4", NIR="B8", SWIR="B12")
+        pre_id_m = func_calcIndices(S2pre_mean, RED="B4", NIR="B8", SWIR="B12")
+        pos_id_m = func_calcIndices(S2pos_mean, RED="B4", NIR="B8", SWIR="B12")
+    else:
+        L7_pre_select = L7_T1L2.filterDate(prefire_date[0], prefire_date[1]) \
+            .filterBounds(clipAOI2).select(bandList)
+        L7_pos_select = L7_T1L2.filterDate(postfire_date[0], postfire_date[1]) \
+            .filterBounds(clipAOI2).select(bandList)
+        
+        # Mosaicking composite
+        L7pre = L7_pre_select.map(maskClouds_L7) \
+            .map(lambda image: func_rescale(image, 0.0000275, -0.2)) \
+            .sort('system:time_start')  \
+            .mosaic()
+        L7pos = L7_pos_select.map(maskClouds_L7) \
+            .map(lambda image: func_rescale(image, 0.0000275, -0.2)) \
+            .sort('system:time_start', False) \
+            .mosaic()
+        # print(json.dumps(L7pre.getInfo(), indent=4))
+        
+        # Mean composite
+        L7pre_mean = L7_pre_select.map(maskClouds_L7) \
+            .map(lambda image: func_rescale(image, 0.0000275, -0.2)) \
+            .mean()
+        L7pos_mean = L7_pos_select.map(maskClouds_L7) \
+            .map(lambda image: func_rescale(image, 0.0000275, -0.2)) \
+            .mean()
+        # print(json.dumps(L7pre_mean.getInfo(), indent=4))
+
+        # Indices Calculation
+        pre_id   = func_calcIndices(L7pre,      RED="SR_B3", NIR="SR_B4", SWIR="SR_B7")
+        pos_id   = func_calcIndices(L7pos,      RED="SR_B3", NIR="SR_B4", SWIR="SR_B7")
+        pre_id_m = func_calcIndices(L7pre_mean, RED="SR_B3", NIR="SR_B4", SWIR="SR_B7")
+        pos_id_m = func_calcIndices(L7pos_mean, RED="SR_B3", NIR="SR_B4", SWIR="SR_B7")
+
+
     
-    S2pre = S2_pre_select.map(func_maskClouds).map(func_rescale) \
-    .sort('system:time_start') \
-    .mosaic(); 
-
-    S2pos = S2_pos_select.map(func_maskClouds).map(func_rescale) \
-    .sort('system:time_start', False) \
-    .mosaic(); 
-    # print(json.dumps(S2pre.getInfo(), indent=4))
-
-    S2pre_mean = S2_pre_select.map(func_maskClouds).map(func_rescale) \
-    .sort('system:time_start') \
-    .mean(); 
-
-    S2pos_mean = S2_pos_select.map(func_maskClouds).map(func_rescale) \
-    .sort('system:time_start', False) \
-    .mean(); 
-    # print(json.dumps(S2pre.getInfo(), indent=4))
-
-
-    # Indices Calculation
-    S2pre_id = func_calcIndices(S2pre)
-    S2pos_id = func_calcIndices(S2pos)
-    S2pre_id_m = func_calcIndices(S2pre_mean)
-    S2pos_id_m = func_calcIndices(S2pos_mean)
 
     # dNBR
-    S2_idcs1  = S2pre_id.select("NBR").subtract(S2pos_id.select("NBR")).multiply(1000).rename("Cl_dNBR")
-    S2_idcs1  = S2_idcs1.addBands(S2pre_id_m.select("NBR").subtract(S2pos_id_m.select("NBR")).multiply(1000).rename("M_dNBR"))
+    indices_first  = pre_id.select("NBR").subtract(pos_id.select("NBR")).multiply(1000).rename("Cl_dNBR")
+    indices_first  = indices_first.addBands(
+        pre_id_m.select("NBR").subtract(pos_id_m.select("NBR")).multiply(1000).rename("M_dNBR")
+    )
 
     # Other indices
-    S2_idcs1  = S2_idcs1.addBands([S2pre_id.select("NBR").rename("preNBR"), 
-                                S2pos_id.select("NBR").rename("posNBR"),
-                                S2pre_id_m.select("NBR").rename("M_preNBR"), 
-                                S2pos_id_m.select("NBR").rename("M_posNBR"),])
+    indices_first  = indices_first.addBands([pre_id.select("NBR").rename("Cl_preNBR"), 
+                                             pos_id.select("NBR").rename("Cl_posNBR"),
+                                             pre_id_m.select("NBR").rename("M_preNBR"), 
+                                             pos_id_m.select("NBR").rename("M_posNBR"),])
 
-    S2_idcs2 = func_calcIndices2(S2_idcs1)
+    indices_final = func_calcIndices2(indices_first)
     
 
     ##########################
     #   Image Exportation    #
     ##########################
     # Select needed bands
-    bd = S2_idcs2.bandNames()
-    bd = bd.removeAll(['preNBR', 'posNBR', 'M_preNBR', 'M_posNBR'])
-    S2_idcs = S2_idcs2.select(bd)
-    bd = S2_idcs.bandNames().getInfo()
+    bd = indices_final.bandNames()
+    bd = bd.removeAll(['Cl_preNBR', 'Cl_posNBR', 'M_preNBR', 'M_posNBR'])
+    indices_for_output = indices_final.select(bd)
+    bd = indices_for_output.bandNames().getInfo()
     print(bd)
 
 
@@ -181,12 +219,13 @@ for in_Name in AreaList:
     print("Exporting for", in_Name)
     driveFLD = os.path.join('EarthEngineFolder', in_Name, in_Name)
     tStamp = datetime.now().strftime("%d%m%Y_%H%M")
+    datasetName = "L7" if L7_flag else "S2"
     for bd_i in bd:
         export_task = ee.batch.Export.image.toDrive(
-            image=S2_idcs.select(bd_i),
+            image=indices_for_output.select(bd_i),
             description='sentinel2_fire_indices_image_export',
             folder='EarthEngineFolder',  # Folder in your Google Drive
-            fileNamePrefix='PythonGEE_output--'+in_Name+'--S2_'+bd_i+'--'+tStamp,  # File name prefix
+            fileNamePrefix=f'PythonGEE_output--{in_Name}--{datasetName}_{bd_i}--{tStamp}',  # File name prefix
             region=clipAOI,  # Define the region to export (could be an area of interest)
             scale=10,  # Spatial resolution in meters
             fileFormat='GeoTIFF',  # File format
