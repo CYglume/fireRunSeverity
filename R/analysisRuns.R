@@ -32,19 +32,29 @@ for (AreaName in AreaList) {
   }
   
   ids = data.frame()
+  env_ids = data.frame()
   for (i in ids_lst){
     i_sub <- strsplit(i, "--")[[1]][1]
-    ids = rbind(ids, data.frame(name = i_sub, loc = paste0(aoi_idcs, "/", i)))
+    if (strsplit(i_sub, "_")[[1]][2] == "env"){
+      env_ids = rbind(env_ids,
+                      data.frame(name = i_sub, 
+                                 loc = paste0(aoi_idcs, "/", i)))
+    }else{
+      ids     = rbind(ids, 
+                      data.frame(name = i_sub, 
+                                 loc = paste0(aoi_idcs, "/", i)))
+    }
   }
   message(cli::col_blue(" -- get Indices list"))
   print(ids)
+  print(env_ids)
   message(cli::col_blue(" -------------------"))
   
   
   ## Load raster data and stack rasters together
   if (exists("ras_idcs")){rm(ras_idcs)}
+  if (exists("ras_env_idcs")){rm(ras_env_idcs)}
   for (i in 1:nrow(ids)){
-    ras <- rast(ids$loc[i])
     if (!exists("ras_idcs")){
       ras_idcs <- rast(ids$loc[i])
     }else{
@@ -52,6 +62,17 @@ for (AreaName in AreaList) {
     }
   }
   
+  for (i in 1:nrow(env_ids)){
+    if (!exists("ras_env_idcs")){
+      ras_env_idcs <- rast(env_ids$loc[i])
+    }else{
+      ras_env_idcs <- c(ras_env_idcs, rast(env_ids$loc[i]))
+    }
+  }
+  
+
+# -------------------------------------------------------------------------
+# Prepare fire runs for indices extraction 
   for (runType in c("FullWind", "FullPol")){
     message(cli::col_blue(paste0(" -- Extraction for FireRuns type: ", runType)))
     # Get vector FireRuns -----------------------------------------------------
@@ -75,6 +96,7 @@ for (AreaName in AreaList) {
                                         fire_Perimeters = vect_Peri,
                                         run_Polygons    = vect_Run,
                                         raster_Indices  = ras_idcs,
+                                        env_Indices     = ras_env_idcs,
                                         wind_Table      = windTbl)
 
     # Add run type flag to the data table

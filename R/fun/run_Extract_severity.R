@@ -11,7 +11,7 @@
 # -------------------------------------------------------------------------
 
 run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons, 
-                                 raster_Indices, wind_Table, quiet = F){
+                                 raster_Indices, env_Indices, wind_Table, quiet = F){
   #Pre-set variables
   buffer_width = 30 #meter
   
@@ -40,10 +40,14 @@ run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons,
     }
     
     Run_i <- run_Polygons %>% filter(ID == objID)
-    Run_i <- buffer(Run_i, buffer_width) #Set up buffer as pre-set value
+    linePoints_i <- as.points(Run_i)
+    
+    Run_i        <- buffer(Run_i, buffer_width) #Set up buffer as pre-set value
+    linePoints_i <- buffer(linePoints_i, buffer_width+5) # to avoid makeing path run multipart
     
     # Perform the clipping
     clp_Run <- terra::intersect(Run_i, Peri_i)
+    # clp_Run_midPath <- terra::erase(clp_Run, linePoints_i)
     
     if(nrow(clp_Run) != 1){
       stop(paste("The run:", objID, "clipped results in multi-part geometry!"))
@@ -73,8 +77,9 @@ run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons,
     ##
     if (!quiet){message(cli::col_blue(" ----- Extracting indices for fire run"))}
     run_idcs <- terra::extract(i_ras_idcs, clp_Run,
-                               touches = T, cells = T)
-    run_idcs = na.omit(run_idcs) # remove NA pixels caused by GEE cloud filtering
+                               touches = T, cells = T) %>% na.omit()
+    env_onPath <- terra::extract(env_Indices, clp_Run, cells = T) %>% na.omit()
+    env_onTip  <- terra::extract(env_Indices, linePoints_i, cells = T) %>% na.omit()
     
     # 3. use the cell numbers to remove raster values
     r = i_ras_idcs
@@ -116,55 +121,66 @@ run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons,
       i_pre_time <- wind_Table$FeHo_W[wind_Table$codi_hora == Run_i$Hour - 1] %>% as.POSIXct(format = "%Y/%m/%d_%H%M")
       i_duration = as.numeric(difftime(i_time, i_pre_time, units = "secs"))
     }
+    # collect input fire information
+    fire_Vars <- data.frame(fire     = aoi_Name,
+                            OBJECTID = objID,
+                            FeHo     = Run_i$FeHo,
+                            Dur      = i_duration,
+                            speed    = Run_i$Distance/i_duration)
+    
+    ########################
+    # Stats for environmental factors
+    # 1. two point slop 2. mean aspect on path 3. mean path elevation  
+    two_point_slop <- env_onTip %>% group_by(ID) %>% 
+                      summarise(mean_elev = mean(env_elevation)) %>% 
+                      pivot_wider(names_from = ID,
+                                  names_prefix = "P",
+                                  values_from = mean_elev) %>% 
+                      mutate(elev_drop      = P2 - P1,
+                             elev_slope     = elev_drop/Run_i$Distance)
+    mean_path_env <- env_onPath %>% 
+                      summarise(asp_mean  = mean(env_aspect),
+                                elev_mean = mean(env_elevation))
+    
+    env_Vars <- cbind(two_point_slop[,-(1:2)],
+                      mean_path_env) %>% 
+                  rename_with( ~ paste0("env_", .x))
+    ########################
+    
+    ########################
+    # Build extraction function for inside/outside fireruns
+    pixel_summary <- function(dt){
+      dt %>% 
+        as_tibble() %>% 
+        select(-any_of(c('ID', 'cell'))) %>% 
+        summarise(across(
+          everything(),
+          list(
+            Mean = mean,
+            SE = se,
+            Mode = mode_fn,
+            Median = median,
+            Min = min,
+            Max = max,
+            p90 = ~quantile(.x, 0.9, na.rm = TRUE)
+          ),
+          .names = "{.col}_{.fn}"
+        ))
+    }
     
     # Stats for run extract
     if (!quiet){message(cli::col_blue(" ----- Combining stats table"))}
-    i_run_idcs <- run_idcs %>% 
-      as_tibble() %>% 
-      select(!c(ID, cell)) %>% 
-      summarise(across(
-        everything(),
-        list(
-          Mean = mean,
-          SE = se,
-          Mode = mode_fn,
-          Median = median,
-          Min = min,
-          Max = max
-        ),
-        .names = "{.col}_{.fn}"
-      )) %>% 
-      mutate(fire     = aoi_Name,
-             OBJECTID = objID,
-             FeHo     = Run_i$FeHo,
-             Dur      = i_duration,
-             speed    = Run_i$Distance/i_duration) %>% 
-      select(last_col(4):last_col(), everything()) # Change the number if more variables need to be mutate()
+    i_run_idcs <- pixel_summary(run_idcs)
     
     # Stats for other area extract
-    i_OUTOF_run_idcs <- sampled_rest_area %>% as_tibble() %>% 
-      select(!c(cell)) %>% 
-      summarise(across(
-        everything(),
-        list(
-          Mean = mean,
-          SE = se,
-          Mode = mode_fn,
-          Median = median,
-          Min = min,
-          Max = max
-        ),
-        .names = "{.col}_{.fn}"
-      )) %>% 
-      mutate(fire     = aoi_Name,
-             OBJECTID = objID,
-             FeHo     = Run_i$FeHo,
-             Dur      = i_duration,
-             speed    = Run_i$Distance/i_duration) %>% 
-      select(last_col(4):last_col(), everything()) # Change the number if more variables need to be mutate()
-    
+    i_OUTOF_run_idcs <- pixel_summary(sampled_rest_area)
+    ########################
+
     
     # Combine stats of indices array together
+    i_run_idcs       <- cbind(fire_Vars, env_Vars, i_run_idcs) %>% as_tibble()
+    i_OUTOF_run_idcs <- cbind(fire_Vars, env_Vars, i_OUTOF_run_idcs) %>% as_tibble()
+    
     # for pixels under fire run
     if(!exists("RUN_idcs")){
       RUN_idcs <- i_run_idcs
