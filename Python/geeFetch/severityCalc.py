@@ -9,7 +9,7 @@ import pytz
 from zoneinfo import ZoneInfo
 from fun.geeFunc import *
 
-ee.Authenticate(force=True)
+ee.Authenticate(force=False)
 ee.Initialize(project = "project-ID") # specify the project name in the argument.
 print(ee.String('Hello from the Earth Engine servers!').getInfo())
 
@@ -102,8 +102,9 @@ for in_Name in AreaList:
     
     
     # Compute the date period for retrieving Satellite img
-    prefire_date  = [dateSt - timedelta(days = 4*30), dateSt - timedelta(days = 1)]
-    postfire_date = [dateEd + timedelta(days = 1),    dateEd + timedelta(days = 4*30)]
+    day_range = 4*30 if not L7_flag else 8*30 # increase the extraction date range for L7 images with low quality
+    prefire_date  = [dateSt - timedelta(days = day_range), dateSt - timedelta(days = 1)]
+    postfire_date = [dateEd + timedelta(days = 1),         dateEd + timedelta(days = day_range)]
 
     prefire_date = [d.strftime("%Y-%m-%d") for d in prefire_date]
     postfire_date = [d.strftime("%Y-%m-%d") for d in postfire_date]
