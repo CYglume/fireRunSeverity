@@ -65,7 +65,7 @@ vFireIn <- vFireIn %>%
          OBJECTID = 2                         # !!Variable To be modify
          ) %>%       
   mutate(FeHo = as.POSIXct(FeHo)) %>%
-  # mutate(FeHo = lubridate::parse_date_time(FeHo, orders = c("Ymd HM", "dmY HM"),quiet = T)) %>% 
+  # mutate(FeHo = lubridate::parse_date_time(FeHo, orders = c("Ymd HM", "dmY HM"),quiet = T)) %>%
   na.omit("FeHo", geom = TRUE) %>%        # Deleting Geometry
   mutate(FeHo = format(FeHo, "%Y/%m/%d_%H%M"))
 
@@ -74,7 +74,7 @@ vFireIn <- vFireIn %>%
 #   rename(OBJECTID = ObjectIDgo)
 
 vFireIn$FeHo 
-vFireIn$OBJECTID
+vFireIn$OBJECTID = 1:nrow(vFireIn)
 unique(vFireIn$OBJECTID)
 
 

@@ -9,7 +9,7 @@
 ##
 ## ! Turn `quiet = on` to mute the progress output !
 # -------------------------------------------------------------------------
-
+source("wind_Oper_Function.R", echo = FALSE)
 run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons, 
                                  raster_Indices, env_Indices, wind_Table, quiet = F){
   #Pre-set variables
@@ -139,7 +139,7 @@ run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons,
                       mutate(elev_drop      = P2 - P1,
                              elev_slope     = elev_drop/Run_i$Distance)
     mean_path_env <- env_onPath %>% 
-                      summarise(asp_mean  = mean(env_aspect),
+                      summarise(asp_mean  = dirAngle_mean(env_aspect),
                                 elev_mean = mean(env_elevation))
     
     env_Vars <- cbind(two_point_slop[,-(1:2)],

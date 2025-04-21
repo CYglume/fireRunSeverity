@@ -9,9 +9,7 @@
 # ------------------------------------------------------------------------------
 source("R/EnvSetup.R", echo = TRUE)
 source("R/fun/run_Extract_severity.R")
-if (file.exists(file.path(stats_DataDir, "sevExtract.RData"))){
-  load(file.path(stats_DataDir, "sevExtract.RData"))
-}
+
 
 AreaList <- basename(list.dirs(file.path(run_DataDir), recursive = F))
 

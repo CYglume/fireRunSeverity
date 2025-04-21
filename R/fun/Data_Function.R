@@ -230,7 +230,7 @@ mode_fn <- function(x) {
 }
 
 se <- function(x){
-  return(sd(x)/sqrt(length(x)))
+  sd(x, na.rm = TRUE) / sqrt(length(na.omit(x)))
 }
 
 idcs_longer <- function(df){
