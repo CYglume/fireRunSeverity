@@ -246,3 +246,24 @@ idcs_longer <- function(df){
                                      "M" ~ "StackMean",
                                      .default = timeCollapse))
 }
+
+max_Mean_p10 <- function(x){
+  # Number of top 10% elements (at least one)
+  n_top <- max(1, floor(0.10 * length(x)))
+  
+  # Get average of the top 10%
+  return(mean(sort(x, decreasing = TRUE)[1:n_top]))
+}
+
+min_Mean_p10 <- function(x){
+  # Number of top 10% elements (at least one)
+  n_top <- max(1, floor(0.10 * length(x)))
+  
+  # Get average of the top 10%
+  return(mean(sort(x, decreasing = FALSE)[1:n_top]))
+}
+
+normal_range <- function(df, col){
+  c(mean(df[,col]) - 5 * sd(df[,col]),
+    mean(df[,col]) + 5 * sd(df[,col]))
+}

@@ -9,7 +9,8 @@
 ##
 ## ! Turn `quiet = on` to mute the progress output !
 # -------------------------------------------------------------------------
-source("wind_Oper_Function.R", echo = FALSE)
+source("R/fun/wind_Oper_Function.R", echo = FALSE)
+source("R/fun/Data_Function.R", echo = FALSE)
 run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons, 
                                  raster_Indices, env_Indices, wind_Table, quiet = F){
   #Pre-set variables
@@ -158,11 +159,8 @@ run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons,
           list(
             Mean = mean,
             SE = se,
-            Mode = mode_fn,
-            Median = median,
-            Min = min,
-            Max = max,
-            p90 = ~quantile(.x, 0.9, na.rm = TRUE)
+            minP10 = min_Mean_p10,
+            maxP10 = max_Mean_p10
           ),
           .names = "{.col}_{.fn}"
         ))
