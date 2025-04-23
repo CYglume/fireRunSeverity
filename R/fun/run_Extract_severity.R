@@ -127,6 +127,7 @@ run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons,
                             OBJECTID = objID,
                             FeHo     = Run_i$FeHo,
                             Dur      = i_duration,
+                            Dir      = Run_i$DirectionD,
                             speed    = Run_i$Distance/i_duration)
     
     ########################
@@ -141,7 +142,8 @@ run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons,
                              elev_slope     = elev_drop/Run_i$Distance)
     mean_path_env <- env_onPath %>% 
                       summarise(asp_mean  = dirAngle_mean(env_aspect),
-                                elev_mean = mean(env_elevation))
+                                elev_mean = mean(env_elevation)) %>% 
+                      mutate(asp_match    = cos((Run_i$DirectionD - asp_mean) * pi / 180))
     
     env_Vars <- cbind(two_point_slop[,-(1:2)],
                       mean_path_env) %>% 

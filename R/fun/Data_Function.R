@@ -4,6 +4,14 @@
 # -------------------------------------------------------------------------
 
 # Fire run Functions ---------------------------------------------------------------
+list_fireRuns <- function(){
+  lst <- list.dirs(file.path(root_folder, run_DataDir),
+            full.names = FALSE, recursive = FALSE)
+  for (name in lst) {
+    print(name)
+  }
+}
+
 fetch_firePeri <- function(AreaName){
   # Get fire fronts shp file
   path <- file.path(root_folder, run_DataDir, AreaName)
