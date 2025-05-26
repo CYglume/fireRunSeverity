@@ -43,6 +43,20 @@ run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons,
     Run_i <- run_Polygons %>% filter(ID == objID)
     linePoints_i <- as.points(Run_i)
     
+    # Check where the run is
+    run_crd <- project(Run_i, "epsg:4326") %>% crds()
+    if(sum(run_crd[,2] >= 0) == 2){
+      # The run is on north hemisphere (equator on south)
+      equa_ref = 180
+    }else if(sum(run_crd[,2] <= 0) == 2){
+      # The run is on south hemisphere (equator on north)
+      equa_ref = 0
+    }else{
+      # The run is across the equator
+      equa_ref = NA
+    }
+    
+    # Buffer runs for pixel extraction
     Run_i        <- buffer(Run_i, buffer_width) #Set up buffer as pre-set value
     linePoints_i <- buffer(linePoints_i, buffer_width+5) # to avoid makeing path run multipart
     
@@ -143,7 +157,8 @@ run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons,
     mean_path_env <- env_onPath %>% 
                       summarise(asp_mean  = dirAngle_mean(env_aspect),
                                 elev_mean = mean(env_elevation)) %>% 
-                      mutate(asp_match    = cos((Run_i$DirectionD - asp_mean) * pi / 180))
+                      mutate(asp_match    = cos((Run_i$DirectionD - asp_mean) * pi / 180),
+                             asp_face_equa = ifelse(is.na(equa_ref), 0, cos((equa_ref - asp_mean) * pi / 180)))
     
     env_Vars <- cbind(two_point_slop[,-(1:2)],
                       mean_path_env) %>% 
