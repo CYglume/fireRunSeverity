@@ -12,7 +12,7 @@ if (file.exists("R/.credential.R")){
   source(file.path(root_folder, "R/.credential.R"), echo = FALSE)
   wf_set_key(key = ecmwfAPIKey)
 } else {
-  message("Error: '.credential.R' required for API tokens!")
+  message("'.credential.R' required for API tokens!")
   # Input your login info with an interactive request
   wf_set_key()
 }
@@ -161,9 +161,7 @@ for (AreaName in AreaList){
         target = temp 
       )
     
-      # If you have stored your user login information
-      # in the keyring by calling cds_set_key you can
-      # call:
+      # Calling the requesting function
       file <- wf_request(
         request  = request,  # the request
         transfer = TRUE,     # download the file
@@ -188,9 +186,10 @@ for (AreaName in AreaList){
         next
       }
       
-      # Calculate Wind direction from vectors u & v
+      # Calculate Wind direction and speed from vectors u & v
       u <- r[[ti*2 - 1]]
       v <- r[[ti*2]]
+      wind_spd <- sqrt(u^2 + v^2)
       wind_Dir <- atan_2(v, u)/pi*180
       wind_Dir <- as.data.frame(wind_Dir, xy = TRUE) %>% 
           rename(value = 3) %>% 
@@ -198,18 +197,24 @@ for (AreaName in AreaList){
         
       # 1. Use centroid only
       cent_wind_extract <- terra::extract(rast(wind_Dir), centroids(feat_fh))
+      cent_wSpeed_extract <- terra::extract(wind_spd, centroids(feat_fh))
       # 2. Use polygon and get touched pixels
       # cent_wind_extract <- terra::extract(rast(wind_Dir), feat_fh, touches = T, cells = T)
       
       # Modify FeHo wind
       cent_wind_extract <- na.omit(cent_wind_extract)
-      cent_wind_extract$Feho = terra::time(r[[ti*2-1]])
+      mean_spd <- na.omit(cent_wSpeed_extract) %>% pull(2) %>% mean()
+      cent_wind_extract <- cent_wind_extract %>% 
+        mutate(wind_speed = mean_spd,
+               Feho = terra::time(r[[ti*2-1]]))
+      
       Feho_wind_extract <- rbind(Feho_wind_extract,
                                  cent_wind_extract)
     }
     print(Feho_wind_extract)
-    tp_feho <- data.frame(FeHo_W = fhGet, 
-                          Wind = dirAngle_mean(Feho_wind_extract$windComeDeg))
+    tp_feho <- data.frame(Wind = dirAngle_mean(Feho_wind_extract$windComeDeg),
+                          wind_speed = mean(Feho_wind_extract$wind_speed),
+                          FeHo_W = fhGet)
     wind_Feho <- rbind(wind_Feho, tp_feho)
     rm(tp_feho)
     
@@ -224,8 +229,9 @@ for (AreaName in AreaList){
   }
   
   # Add codi_hora for process in FireRuns algorithm
-  wind_Feho$codi_hora = seq(nrow(wind_Feho))
-  write.csv(wind_Feho[,c(3,2,1)],
+  wind_Feho <- wind_Feho %>% 
+    mutate(codi_hora = seq(nrow(wind_Feho)), .before = 1)
+  write.csv(wind_Feho,
             file = wind_tbl_path,
             row.names = FALSE)
   message(paste0("\n-- END of Writing Wind table for AOI: ", AreaName, "-------- \n"))

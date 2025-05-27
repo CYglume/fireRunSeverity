@@ -142,7 +142,9 @@ run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons,
                             FeHo     = Run_i$FeHo,
                             Dur      = i_duration,
                             Dir      = Run_i$DirectionD,
-                            speed    = Run_i$Distance/i_duration)
+                            speed    = Run_i$Distance/i_duration,
+                            wind_Dir = wind_Table$Wind[wind_Table$codi_hora == Run_i$Hour],
+                            wind_spd = wind_Table$wind_speed[wind_Table$codi_hora == Run_i$Hour])
     
     ########################
     # Stats for environmental factors
