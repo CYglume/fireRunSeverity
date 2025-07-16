@@ -21,6 +21,12 @@ cart_angle_toWindDir <- function(x) {
   return(x)
 }
 
+windCome_to_windTowards <- function(x){
+  x = 180 + x
+  x <- ifelse(x >= 360, x %% 360, x)
+  return(x)
+}
+
 dirAngle_mean <- function(angles) {
   # Convert angles from degrees to radians
   radians <- angles * pi / 180

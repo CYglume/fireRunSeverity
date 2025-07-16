@@ -110,6 +110,7 @@ for (AreaName in AreaList){
     # Produce API time list
     fh_Lst <- seq.POSIXt(fhTime_pre, fhTime, by = "hour")
     fh_Lst <- with_tz(fh_Lst, "UTC")
+    message(cli::col_blue(paste0("UTM hour: ", fh_Lst[1], "-", fh_Lst[length(fh_Lst)])))
     yy = unique(format(fh_Lst, "%Y"))
     mm = unique(format(fh_Lst, "%m"))
     dd = unique(format(fh_Lst, "%d"))

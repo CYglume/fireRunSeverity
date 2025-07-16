@@ -16,7 +16,7 @@ library(FireRuns)
 
 
 # Load required packages
-packagesToLoad <- c("tidyverse", "tidyterra", "ggpubr", "ecmwfr", "sf", "lutz")
+packagesToLoad <- c("tidyverse", "tidyterra", "terra", "ggpubr", "ecmwfr", "sf", "lutz")
 for (package in packagesToLoad) {
   if (!require(package, character.only = TRUE)) {
     install.packages(package)

@@ -10,6 +10,7 @@ list_fireRuns <- function(){
   for (name in lst) {
     print(name)
   }
+  return(lst)
 }
 
 fetch_firePeri <- function(AreaName){
