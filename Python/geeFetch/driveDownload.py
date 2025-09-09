@@ -19,7 +19,8 @@ if root_folder[-1] != 'fireRunSeverity':
     print("!!-- Didn't get correct root folder! --!!")
     print(root_folder)
     print("!!-- Modify rooting index at line: 18 and come back --!!")
-root_folder = os.path.join('C:\\', *root_folder)
+# root_folder = os.path.join('C:\\', *root_folder)
+root_folder = os.path.join(os.sep,*root_folder)
 
 # Local Side data
 # List in put data for GEE fetch

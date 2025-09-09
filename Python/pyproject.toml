@@ -6,17 +6,19 @@ authors = ["CYglume <glume.cy.yang@gmail.com>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = ">=3.12,<3.14"
 earthengine-api = "^1.4.0"
 geemap = "^0.35.1"
 ipynb-py-convert = "^0.4.6"
 geopandas = "^1.0.1"
 google-auth-oauthlib = "^1.2.1"
-timezonefinder = "^6.5.8"
+timezonefinder = "6.5.8"
 pytz = "^2025.1"
 setuptools = "75.3.0"
 ipykernel = "^6.29.5"
 jinja2 = "^3.1.5"
+climate-indices = "^2.2.0"
+cdsapi = "^0.7.6"
 
 
 [build-system]
