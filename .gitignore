@@ -3,16 +3,21 @@ R/work_script.R
 man/sPlot
 man/Demo
 R/stats
+Python/geeFetch/notebook/listGEEdirs.ipynb
+R/fun/(tbc)peri_Extract_severity.R
 
 # Data
 /data/
 /src/fireRaw/*
 !/src/fireRaw/README.md
+geeIDS.json
 
 #credential
-R/.credential.R
-Python/geeFetch/.credential.json
-Python/geeFetch/.token.json
+.credential.R
+.credential.json
+.token.json
+.cds_cred.json
+
 
 #virtual environments
 Python/.venv
