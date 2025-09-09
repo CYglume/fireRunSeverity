@@ -33,18 +33,18 @@ def func_calcIndices(image, RED, NIR, SWIR):
     return image.addBands([NBR, NDVI])
 
 def func_calcIndices2(image):
-    Cl_RBR   = image.expression(
-        "dNBR / (preNBR + 1.001)", {
-            "preNBR": image.select('Cl_preNBR'),
-            "dNBR": image.select('Cl_dNBR') 
-        }
-    ).rename('Cl_RBR').toFloat()
-    Cl_RdNBR = image.expression(
-        "(abs(preNBR) < 0.001) ? dNBR/sqrt(0.001) : dNBR/sqrt(abs(preNBR))",{
-            "preNBR": image.select('Cl_preNBR'),
-            "dNBR": image.select('Cl_dNBR')
-        }
-    ).rename("Cl_RdNBR").toFloat()
+    # Cl_RBR   = image.expression(
+    #     "dNBR / (preNBR + 1.001)", {
+    #         "preNBR": image.select('Cl_preNBR'),
+    #         "dNBR": image.select('Cl_dNBR') 
+    #     }
+    # ).rename('Cl_RBR').toFloat()
+    # Cl_RdNBR = image.expression(
+    #     "(abs(preNBR) < 0.001) ? dNBR/sqrt(0.001) : dNBR/sqrt(abs(preNBR))",{
+    #         "preNBR": image.select('Cl_preNBR'),
+    #         "dNBR": image.select('Cl_dNBR')
+    #     }
+    # ).rename("Cl_RdNBR").toFloat()
     M_RBR   = image.expression(
         "dNBR / (preNBR + 1.001)", {
             "preNBR": image.select('M_preNBR'),
@@ -57,4 +57,5 @@ def func_calcIndices2(image):
             "dNBR": image.select('M_dNBR')
         }
     ).rename("M_RdNBR").toFloat()
-    return image.addBands([Cl_RBR, Cl_RdNBR, M_RBR, M_RdNBR])
+    return image.addBands([M_RBR, M_RdNBR])
+    # return image.addBands([Cl_RBR, Cl_RdNBR, M_RBR, M_RdNBR])

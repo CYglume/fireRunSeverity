@@ -9,25 +9,39 @@ import pytz
 from zoneinfo import ZoneInfo
 from fun.geeFunc import *
 
-ee.Authenticate(force=False)
-ee.Initialize(project = "project-ID") # specify the project name in the argument.
+# Input and Verify GEE project ID
+GEE_project_ID = input("Google Cloud Project ID: ") # Input the project name found in the Google Cloud Project.
+
+try:
+    ee.Authenticate(force=False)
+    ee.Initialize(project = GEE_project_ID) 
+except:
+    ee.Authenticate(force=True)
+    ee.Initialize(project = GEE_project_ID) 
+
 print(ee.String('Hello from the Earth Engine servers!').getInfo())
 
 # To get root path under project folder structure
 cwd = os.path.dirname(os.path.abspath("__file__"))
 root_folder = cwd.split('\\')
-root_folder = root_folder[1:-2]
+root_folder = root_folder[0:-2]
 if root_folder[-1] != 'fireRunSeverity':
     print("!!-- Didn't get correct root folder! --!!")
     print(root_folder)
     print("!!-- Modify rooting index at line: 18 and come back --!!")
-root_folder = os.path.join('C:\\', *root_folder)
+if re.search(r":", root_folder[0]):
+    root_folder = os.path.join(root_folder[0], os.sep, *root_folder[1:])
+else:
+    root_folder = os.path.join(os.sep,*root_folder)
 
 
 # Local Side data
 # List in put data for GEE fetch
 run_DataDir = r"data/fireruns"
 AreaList = os.listdir(os.path.join(root_folder,run_DataDir))
+if os.path.isfile('geeIDS.json'):
+    with open('geeIDS.json', 'r', encoding='utf-8') as f:
+        exist_indicesList_json = json.load(f)
 
 
 # Load Online Data Collection (Run for all process)
@@ -35,6 +49,7 @@ AreaList = os.listdir(os.path.join(root_folder,run_DataDir))
 S2_harmon = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED")
 L7_T1L2   = ee.ImageCollection("LANDSAT/LE07/C02/T1_L2")
 SRTM      = ee.Image("USGS/SRTMGL1_003")
+SPEI      = ee.ImageCollection("CSIC/SPEI/2_10")
 
 for in_Name in AreaList:
     print("\n\n ######################################################")
@@ -68,8 +83,15 @@ for in_Name in AreaList:
     # ----------------------------------------------- #
     # Check if any index map has been calculated
     outGEEFLD = os.path.join(root_folder, 'data', 'GEE', in_Name)
+    if not os.path.isdir(outGEEFLD):
+        os.makedirs(outGEEFLD)
     exist_indicesList = os.listdir(outGEEFLD)
     exist_indicesList = [f.split("--")[0] for f in exist_indicesList if os.path.isfile(os.path.join(outGEEFLD, f))]
+    if 'exist_indicesList_json' in locals():
+        if in_Name in exist_indicesList_json.keys():
+            for exist_id in exist_indicesList_json[in_Name]:
+                if exist_id not in exist_indicesList:
+                    exist_indicesList.append(exist_id)
 
     # ----------------------------------------------- #
     ##########################
@@ -82,8 +104,8 @@ for in_Name in AreaList:
 
     # Get date of data
     # Convert time zone to UTC
-    fire_dtString = list(shpGPD['FeHo'])
-    fire_dtsList  = [datetime.strptime(dt, "%Y/%m/%d_%H%M").replace(tzinfo=ZoneInfo(timezone)) for dt in fire_dtString]
+    fire_dtString = list(shpGPD['FeHo'].dropna())
+    fire_dtsList  = [datetime.strptime(dt, "%Y/%m/%d_%H%M").replace(tzinfo=ZoneInfo(timezone)) for dt in fire_dtString if not re.search("\\D", dt[:4])] # Filter out string with non-digit characters
     tz_utc = pytz.timezone("UTC")
     fire_dtsList_UTC = [dt.astimezone(tz_utc) for dt in fire_dtsList]
 
@@ -100,6 +122,12 @@ for in_Name in AreaList:
         print("----- Using Landsat 7 ......")
         L7_flag = True
     
+    SPEI_flag = True
+    if dateSt > date(2023, 12, 31):
+        print("----- Date after 2023/12 is not available for SPEI dataset -----")
+        print("----- AOI: ", in_Name, " -----")
+        SPEI_flag = False
+
     
     # Compute the date period for retrieving Satellite img
     day_range = 4*30 if not L7_flag else 8*30 # increase the extraction date range for L7 images with low quality
@@ -127,6 +155,7 @@ for in_Name in AreaList:
     ##########################
     # filter satellite data
     bandList = ["SR_B.", "SR_CLOUD_QA", "QA_PIXEL"] if L7_flag else ["B.", "B..", "QA60", "MSK_CLDPRB"]
+    band_SPEI = ["SPEI_03_month", "SPEI_06_month", "SPEI_09_month", "SPEI_12_month"]
 
     if not L7_flag:
         S2_pre_select = S2_harmon.filterDate(prefire_date[0], prefire_date[1]) \
@@ -134,16 +163,16 @@ for in_Name in AreaList:
         S2_pos_select = S2_harmon.filterDate(postfire_date[0], postfire_date[1]) \
             .filterBounds(clipAOI2).select(bandList)
         
-        # Mosaicking composite
-        S2pre = S2_pre_select.map(func_maskClouds) \
-            .map(lambda image: func_rescale(image, scale=0.0001, offset=0)) \
-            .sort('system:time_start') \
-            .mosaic(); 
-        S2pos = S2_pos_select.map(func_maskClouds) \
-            .map(lambda image: func_rescale(image, scale=0.0001, offset=0)) \
-            .sort('system:time_start', False) \
-            .mosaic(); 
-        # print(json.dumps(S2pre.getInfo(), indent=4))
+        # # Mosaicking composite
+        # S2pre = S2_pre_select.map(func_maskClouds) \
+        #     .map(lambda image: func_rescale(image, scale=0.0001, offset=0)) \
+        #     .sort('system:time_start') \
+        #     .mosaic(); 
+        # S2pos = S2_pos_select.map(func_maskClouds) \
+        #     .map(lambda image: func_rescale(image, scale=0.0001, offset=0)) \
+        #     .sort('system:time_start', False) \
+        #     .mosaic(); 
+        # # print(json.dumps(S2pre.getInfo(), indent=4))
 
         # Mean composite
         S2pre_mean = S2_pre_select.map(func_maskClouds) \
@@ -155,8 +184,8 @@ for in_Name in AreaList:
         # print(json.dumps(S2pre_mean.getInfo(), indent=4))
 
         # Indices Calculation
-        pre_id   = func_calcIndices(S2pre,      RED="B4", NIR="B8", SWIR="B12")
-        pos_id   = func_calcIndices(S2pos,      RED="B4", NIR="B8", SWIR="B12")
+        # pre_id   = func_calcIndices(S2pre,      RED="B4", NIR="B8", SWIR="B12")
+        # pos_id   = func_calcIndices(S2pos,      RED="B4", NIR="B8", SWIR="B12")
         pre_id_m = func_calcIndices(S2pre_mean, RED="B4", NIR="B8", SWIR="B12")
         pos_id_m = func_calcIndices(S2pos_mean, RED="B4", NIR="B8", SWIR="B12")
     else:
@@ -165,16 +194,16 @@ for in_Name in AreaList:
         L7_pos_select = L7_T1L2.filterDate(postfire_date[0], postfire_date[1]) \
             .filterBounds(clipAOI2).select(bandList)
         
-        # Mosaicking composite
-        L7pre = L7_pre_select.map(maskClouds_L7) \
-            .map(lambda image: func_rescale(image, 0.0000275, -0.2)) \
-            .sort('system:time_start')  \
-            .mosaic()
-        L7pos = L7_pos_select.map(maskClouds_L7) \
-            .map(lambda image: func_rescale(image, 0.0000275, -0.2)) \
-            .sort('system:time_start', False) \
-            .mosaic()
-        # print(json.dumps(L7pre.getInfo(), indent=4))
+        # # Mosaicking composite
+        # L7pre = L7_pre_select.map(maskClouds_L7) \
+        #     .map(lambda image: func_rescale(image, 0.0000275, -0.2)) \
+        #     .sort('system:time_start')  \
+        #     .mosaic()
+        # L7pos = L7_pos_select.map(maskClouds_L7) \
+        #     .map(lambda image: func_rescale(image, 0.0000275, -0.2)) \
+        #     .sort('system:time_start', False) \
+        #     .mosaic()
+        # # print(json.dumps(L7pre.getInfo(), indent=4))
         
         # Mean composite
         L7pre_mean = L7_pre_select.map(maskClouds_L7) \
@@ -186,8 +215,8 @@ for in_Name in AreaList:
         # print(json.dumps(L7pre_mean.getInfo(), indent=4))
 
         # Indices Calculation
-        pre_id   = func_calcIndices(L7pre,      RED="SR_B3", NIR="SR_B4", SWIR="SR_B7")
-        pos_id   = func_calcIndices(L7pos,      RED="SR_B3", NIR="SR_B4", SWIR="SR_B7")
+        # pre_id   = func_calcIndices(L7pre,      RED="SR_B3", NIR="SR_B4", SWIR="SR_B7")
+        # pos_id   = func_calcIndices(L7pos,      RED="SR_B3", NIR="SR_B4", SWIR="SR_B7")
         pre_id_m = func_calcIndices(L7pre_mean, RED="SR_B3", NIR="SR_B4", SWIR="SR_B7")
         pos_id_m = func_calcIndices(L7pos_mean, RED="SR_B3", NIR="SR_B4", SWIR="SR_B7")
 
@@ -195,15 +224,18 @@ for in_Name in AreaList:
     
 
     # dNBR
-    indices_first  = pre_id.select("NBR").subtract(pos_id.select("NBR")).multiply(1000).rename("Cl_dNBR")
-    indices_first  = indices_first.addBands(
-        pre_id_m.select("NBR").subtract(pos_id_m.select("NBR")).multiply(1000).rename("M_dNBR")
-    )
+    # indices_first  = pre_id.select("NBR").subtract(pos_id.select("NBR")).multiply(1000).rename("Cl_dNBR")
+    # indices_first  = indices_first.addBands(
+    #     pre_id_m.select("NBR").subtract(pos_id_m.select("NBR")).multiply(1000).rename("M_dNBR")
+    # )
+    indices_first  = pre_id_m.select("NBR").subtract(pos_id_m.select("NBR")).multiply(1000).rename("M_dNBR")
 
     # Other indices
-    indices_first  = indices_first.addBands([pre_id.select("NBR").rename("Cl_preNBR"), 
-                                             pos_id.select("NBR").rename("Cl_posNBR"),
-                                             pre_id_m.select("NBR").rename("M_preNBR"), 
+    # indices_first  = indices_first.addBands([pre_id.select("NBR").rename("Cl_preNBR"), 
+    #                                          pos_id.select("NBR").rename("Cl_posNBR"),
+    #                                          pre_id_m.select("NBR").rename("M_preNBR"), 
+    #                                          pos_id_m.select("NBR").rename("M_posNBR"),])
+    indices_first  = indices_first.addBands([pre_id_m.select("NBR").rename("M_preNBR"), 
                                              pos_id_m.select("NBR").rename("M_posNBR"),])
 
     indices_final = func_calcIndices2(indices_first)
@@ -213,12 +245,21 @@ for in_Name in AreaList:
     indices_final = indices_final.addBands([SRTM.clip(clipAOI2).select('elevation').rename('env_elevation'),
                                             terrain.select('aspect').rename('env_aspect'),])
 
+    # SPEI indices
+    if SPEI_flag:
+        month_SPEI = (date(dateSt.year, dateSt.month, 1).strftime("%Y-%m-%d"), date(dateSt.year, dateSt.month, 28).strftime("%Y-%m-%d"))
+        spei_flt = SPEI.filterDate(month_SPEI[0], month_SPEI[1]) \
+            .filterBounds(clipAOI2).first() # Select the only image
+        indices_final = indices_final.addBands(spei_flt.select(band_SPEI))
+
+
     ##########################
     #   Image Exportation    #
     ##########################
     # Select needed bands
     bd = indices_final.bandNames()
-    bd = bd.removeAll(['Cl_preNBR', 'Cl_posNBR', 'M_preNBR', 'M_posNBR'])
+    # bd = bd.removeAll(['Cl_preNBR', 'Cl_posNBR', 'M_preNBR', 'M_posNBR'])
+    bd = bd.removeAll(['M_preNBR', 'M_posNBR'])
     indices_for_output = indices_final.select(bd)
     bd = indices_for_output.bandNames().getInfo()
     print(bd)
