@@ -15,17 +15,55 @@ source(file.path(root_folder, "R/EnvSetup.R"), echo = FALSE)
 ########################################
 
 AreaList <- basename(list.dirs(file.path(run_DataDir), recursive = F))
+newFire
+
+# -------------------------------------------------------------------------
+# Check validity
+library(sf)
+for (AreaName in AreaList){
+  setwd(file.path(root_folder, run_DataDir, AreaName))
+  shpIn <- fs::dir_ls("./input", glob = "*.shp")
+  # Read your file
+  g <- st_read(shpIn,quiet = T)
+  
+  # Check validity
+  if(any(!st_is_valid(g))){
+    message(AreaName)
+    # message(which(!st_is_valid(g)))
+  }
+  
+  setwd(root_folder)
+}
+
+# NA ratio
+for (AreaName in AreaList){
+  vfire <- fetch_firePeri(AreaName, quiet = T)
+  na_count <- vfire$FeHo %>% is.na() %>% sum()
+  vfire <- vfire %>% mutate(area = expanse(.))
+  na_area <- vfire %>% filter(is.na(FeHo)) %>% pull(area) %>% sum()
+  if (na_area/sum(vfire$area)>0.1){
+    message(AreaName)
+    message(paste("NA percentage:", na_count/nrow(vfire)))
+    message(paste("NA area:", na_area/sum(vfire$area)))
+    message(" ")
+  }
+}
+# -------------------------------------------------------------------------
 
 
 # -------------------------------------------------------------------------
-AreaName = AreaList[6]
+AreaName = AreaList[21]
+AreaName = newFire[6]
 AreaName
 # Get fire fronts shp file
 setwd(file.path(root_folder, run_DataDir, AreaName))
 shpIn <- fs::dir_ls("./input", glob = "*.shp")
 vFireIn <- vect(shpIn)
 
-
+vFireIn$OBJECTID
+vFireIn$OBJECTID %>% unique()
+vFireIn$FeHo
+vFireIn$date_hour
 # -------------------------------------------------------------------------
 
 # -------------------------------------------------------------------------
@@ -34,11 +72,10 @@ vFireIn <- vect(shpIn)
 # 1. check suitable columns for `FeHo`     #
 # 2. check suitable columns for `OBJECTID` #
 ############################################
-
 for (i in 1:ncol(vFireIn)){
-  verify_DATE_head <- head(vFireIn[[i]]) %>% 
-    pull() %>% 
-    lubridate::parse_date_time(orders = c("Ymd HM", "dmY HM"),quiet = T) %>% 
+  verify_DATE_head <- vFireIn[[i]] %>% 
+    pull() %>% sample(10) %>% 
+    lubridate::parse_date_time(orders = c("Ymd HM", "HM dmY"),quiet = T) %>% 
     is.na()
   if(any(!verify_DATE_head)){
     message("Column name for FeHo:")
@@ -61,33 +98,30 @@ for (i in 1:ncol(vFireIn)){
 # 2. Not connected with previous part for safe operating file modification #
 ############################################################################
 vFireIn <- vFireIn %>% 
-  rename(FeHo = 4,                            # !!Variable to be modify
-         OBJECTID = 2                         # !!Variable To be modify
-         ) %>%       
-  mutate(FeHo = as.POSIXct(FeHo)) %>%
-  # mutate(FeHo = lubridate::parse_date_time(FeHo, orders = c("Ymd HM", "dmY HM"),quiet = T)) %>%
-  na.omit("FeHo", geom = TRUE) %>%        # Deleting Geometry
-  mutate(FeHo = format(FeHo, "%Y/%m/%d_%H%M"))
+  mutate(FeHo = lubridate::parse_date_time(date_hour, c("Ymd HM", "HM Ymd")),
+         FeHo = format(FeHo, "%Y/%m/%d_%H%M"))
 
 # If only to modify OBJECTID
 # vFireIn <- vFireIn %>%
 #   rename(OBJECTID = ObjectIDgo)
-
-vFireIn$FeHo 
+vFireIn$FeHo %>% lubridate::parse_date_time(c("Ymd HM", "HM Ymd"))
+vFireIn$date_hour %>% lubridate::parse_date_time(c("Ymd HM", "Ymd"))
 vFireIn$OBJECTID = 1:nrow(vFireIn)
-unique(vFireIn$OBJECTID)
+# vFireIn$FeHo[187] = "20200829_1400" # from 20202829_1400 for LC2
 
-
-
+# Final check
+vFireIn$OBJECTID
+vFireIn$OBJECTID %>% unique()
+vFireIn$FeHo
 # !! Write Spatial vector into file !!
-# writeVector(vFireIn, shpIn, overwrite = TRUE)
+writeVector(vFireIn, shpIn, overwrite = TRUE)
 setwd(root_folder)
 # -------------------------------------------------------------------------
 
 # -------------------------------------------------------------------------
 # Check complete separation of polygons
 message("\n---- Checking polygon counts ----")
-for (aa in AreaList){
+for (aa in newFire){
   message(paste(" - AOI:", aa))
   # Get fire fronts shp file
   setwd(file.path(root_folder, run_DataDir, aa))
@@ -117,3 +151,9 @@ for (aa in AreaList){
   
   setwd(root_folder)
 }
+
+# -------------------------------------------------------------------------
+# Check zero area polygons
+(expanse(vFireIn) < 0.0001) %>% sum()
+
+

@@ -10,8 +10,11 @@ setwd(root_folder)
 
 # Load Packages -----------------------------------------------------------
 # Install needed packages
-# require(devtools)
-# install_github("AndreaDuane/FireRuns")
+if(!require("FireRuns", character.only = TRUE)){
+  if(!require("devtools", character.only = TRUE)){install.packages("devtools")}
+  require(devtools)
+  install_github("AndreaDuane/FireRuns", force = TRUE)
+}
 library(FireRuns)
 
 
@@ -51,6 +54,7 @@ if (any(!dir.exists(dt_folder))) {
 
 # Create sub folders for fire runs
 dt_folder <- list.dirs("src/fireRaw", recursive = F)
+newFire <- c()
 if (length(dt_folder) != 0) {
   # Run for each AOI folder in fireRaw
   for (di in dt_folder) {
@@ -69,6 +73,7 @@ if (length(dt_folder) != 0) {
         path_t = paste(dir_path, basename(path_f), sep="/")
         file.copy(from = path_f, to = path_t, recursive = F)
       }
+      newFire <- c(newFire, di)
       message(paste("Created folder:", di))
     } else {
       message(cli::col_blue(paste("Folder exists:", di)))
