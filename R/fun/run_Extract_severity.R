@@ -12,7 +12,8 @@
 source("R/fun/wind_Oper_Function.R", echo = FALSE)
 source("R/fun/Data_Function.R", echo = FALSE)
 run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons, 
-                                 raster_Indices, env_Indices, wind_Table, quiet = F){
+                                 raster_Indices, env_Indices, spei_Indices,
+                                 wind_Table,  vpd_Table, quiet = F){
   #Pre-set variables
   buffer_width = 30 #meter
   
@@ -82,41 +83,38 @@ run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons,
     #     --> equals to                                         #
     #     --> "length(which(!is.na(values(i_ras_idcs[[1]]))))"  #
     # Output:                                                   #
-    # run_idcs, sampled_rest_area                               #
+    # run_idcs, sampled_rest_area_Severity,                     #
+    # sampled_rest_area_SPEI                                    #
     #                                                           #
     #############################################################
     # 1. cropping raster by i_th perimeter
     i_ras_idcs <- terra::crop(raster_Indices, Peri_i, mask=TRUE)
+    i_spei     <- terra::crop(spei_Indices, Peri_i, mask=TRUE)
     
     # 2. extract values to i_th fire run (clipped by perimeter)
     ##
     if (!quiet){message(cli::col_blue(" ----- Extracting indices for fire run"))}
     run_idcs <- terra::extract(i_ras_idcs, clp_Run,
                                touches = T, cells = T) %>% na.omit()
+    run_spei <- terra::extract(i_spei, clp_Run,
+                               touches = T, cells = T) %>% na.omit()
     env_onPath <- terra::extract(env_Indices, clp_Run, cells = T) %>% na.omit()
     env_onTip  <- terra::extract(env_Indices, linePoints_i, cells = T) %>% na.omit()
     
     # 3. use the cell numbers to remove raster values
-    r = i_ras_idcs
-    r[run_idcs$cell] <- NA
-    
+    r_sev = i_ras_idcs
+    r_spei = i_spei
+    r_sev[run_idcs$cell] <- NA
+    r_spei[run_spei$cell] <- NA
     
     # 4. random sample the pixels
     # Sample the valid cells in size of extracted cell counts
-    valid_cells   <- which(!is.na(values(r[[1]])))
-    if (length(valid_cells) <= length(run_idcs$cell)){
-      # If cells for run indices not less than the rest
-      # Use all left cells
-      message("!----- Pixels left for sample no more than already used!")
-      sample_cells  <- valid_cells
-    }else{
-      # Sample cells at the same size as run indices
-      sample_cells  <- sample(valid_cells, size = length(run_idcs$cell), replace=FALSE)
-    }
-    ##
-    if (!quiet){message(cli::col_blue(" ----- Extracting indices for the rest of AOI"))}
-    sampled_rest_area <- terra::extract(r, sample_cells) %>% data.frame(cell = sample_cells)
-    
+    # Sample Severity
+    sampled_rest_area_Severity = sample_outRuns(ras_filtered = r_sev, 
+                                                run_extract_tbl = run_idcs)
+    ### Sample SPEI
+    sampled_rest_area_SPEI     = sample_outRuns(ras_filtered = r_spei, 
+                                                run_extract_tbl = run_spei)
     # -------------------------------------------------------------------------  
     #################################################################
     # Calculate statistics as table:                                #
@@ -144,7 +142,8 @@ run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons,
                             Dir      = Run_i$DirectionD,
                             speed    = Run_i$Distance/i_duration,
                             wind_Dir = wind_Table$Wind[wind_Table$codi_hora == Run_i$Hour],
-                            wind_spd = wind_Table$wind_speed[wind_Table$codi_hora == Run_i$Hour])
+                            wind_spd = wind_Table$wind_speed[wind_Table$codi_hora == Run_i$Hour],
+                            vpd_kPa  = vpd_Table$VPD_kPa[vpd_Table$codi_hora == Run_i$Hour])
     
     ########################
     # Stats for environmental factors
@@ -168,35 +167,20 @@ run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons,
     ########################
     
     ########################
-    # Build extraction function for inside/outside fireruns
-    pixel_summary <- function(dt){
-      dt %>% 
-        as_tibble() %>% 
-        select(-any_of(c('ID', 'cell'))) %>% 
-        summarise(across(
-          everything(),
-          list(
-            Mean = mean,
-            SE = se,
-            minP10 = min_Mean_p10,
-            maxP10 = max_Mean_p10
-          ),
-          .names = "{.col}_{.fn}"
-        ))
-    }
-    
     # Stats for run extract
     if (!quiet){message(cli::col_blue(" ----- Combining stats table"))}
     i_run_idcs <- pixel_summary(run_idcs)
+    i_run_spei <- pixel_summary(run_spei)
     
     # Stats for other area extract
-    i_OUTOF_run_idcs <- pixel_summary(sampled_rest_area)
+    i_OUTOF_run_idcs <- pixel_summary(sampled_rest_area_Severity)
+    i_OUTOF_run_SPEI <- pixel_summary(sampled_rest_area_SPEI)
     ########################
 
     
     # Combine stats of indices array together
-    i_run_idcs       <- cbind(fire_Vars, env_Vars, i_run_idcs) %>% as_tibble()
-    i_OUTOF_run_idcs <- cbind(fire_Vars, env_Vars, i_OUTOF_run_idcs) %>% as_tibble()
+    i_run_idcs       <- cbind(fire_Vars, env_Vars, i_run_spei, i_run_idcs) %>% as_tibble()
+    i_OUTOF_run_idcs <- cbind(fire_Vars, env_Vars, i_OUTOF_run_SPEI, i_OUTOF_run_idcs) %>% as_tibble()
     
     # for pixels under fire run
     if(!exists("RUN_idcs")){
@@ -217,3 +201,35 @@ run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons,
   return(list(Run = RUN_idcs, OutRun = OUTOF_RUN_idcs))
 }  
   
+
+# Build extraction function for inside/outside fireruns
+pixel_summary <- function(dt){
+  dt %>% 
+    as_tibble() %>% 
+    select(-any_of(c('ID', 'cell'))) %>% 
+    summarise(across(
+      everything(),
+      list(
+        Mean = mean,
+        SE = se
+      ),
+      .names = "{.col}_{.fn}"
+    ))
+}
+
+sample_outRuns <- function(ras_filtered, run_extract_tbl){
+  valid_cells   <- which(!is.na(values(ras_filtered[[1]])))
+  if (length(valid_cells) <= length(run_extract_tbl$cell)){
+    # If cells for run indices not less than the rest
+    # Use all left cells
+    message("!----- Pixels left for sample no more than already used!")
+    sample_cells  <- valid_cells
+  }else{
+    # Sample cells at the same size as run indices
+    sample_cells  <- sample(valid_cells, size = length(run_extract_tbl$cell), replace=FALSE)
+  }
+  message(cli::col_blue(" ----- Extracting SPEI for the rest of AOI"))
+  sampled_rest_area <- terra::extract(ras_filtered, sample_cells) %>% data.frame(cell = sample_cells)
+  return(sampled_rest_area)
+}
+
