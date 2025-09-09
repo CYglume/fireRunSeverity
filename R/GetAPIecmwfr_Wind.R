@@ -60,12 +60,14 @@ for (AreaName in AreaList){
   shpIn <- fs::dir_ls("./input", glob = "*.shp")
   vFireIn <- vect(shpIn)
   setwd(root_folder)
+  FeHo_Check(vFireIn)
   
   # Get a table for FeHo hours
   FeHo_tbl <- vFireIn %>% 
     group_by(FeHo) %>% 
     summarise(n = n()) %>% 
-    as_tibble()
+    as_tibble() %>% 
+    na.omit() # skip na FeHo
   
   
   # Create data folder for ER5 download
@@ -179,6 +181,7 @@ for (AreaName in AreaList){
     r = project(r, crs(feat_fh))
     Feho_wind_extract = data.frame()
     for (ti in 1:(nlyr(r)/2)){
+      # Extract across each hour
       # Skip run for times not in FeHo list 
       # or Not match each other (u v must be at the same hour)
       if (!terra::time(r[[ti*2-1]]) %in% fh_Lst |
@@ -192,15 +195,23 @@ for (AreaName in AreaList){
       v <- r[[ti*2]]
       wind_spd <- sqrt(u^2 + v^2)
       wind_Dir <- atan_2(v, u)/pi*180
-      wind_Dir <- as.data.frame(wind_Dir, xy = TRUE) %>% 
-          rename(value = 3) %>% 
+      temp_raster <- wind_Dir %>% 
+        rename(value = 1) %>% 
+        mutate(windComeDeg = NA)
+      wind_Dir <- as.data.frame(wind_Dir, xy = TRUE, cells = TRUE) %>% 
+          rename(value = last_col()) %>% 
           mutate(windComeDeg = sapply(value, cart_angle_toWindDir)) 
+      temp_raster$windComeDeg[wind_Dir$cell] = wind_Dir$windComeDeg
         
       # 1. Use centroid only
-      cent_wind_extract <- terra::extract(rast(wind_Dir), centroids(feat_fh))
+      cent_wind_extract <- terra::extract(temp_raster, centroids(feat_fh))
       cent_wSpeed_extract <- terra::extract(wind_spd, centroids(feat_fh))
-      # 2. Use polygon and get touched pixels
-      # cent_wind_extract <- terra::extract(rast(wind_Dir), feat_fh, touches = T, cells = T)
+      if (nrow(na.omit(cent_wind_extract)) == 0){ 
+        # if centroids are not inside valid rasters
+        # 2. Use polygon and get touched pixels
+        cent_wind_extract <- terra::extract(temp_raster, feat_fh, touches = T)
+        cent_wSpeed_extract <- terra::extract(wind_spd, feat_fh, touches = T)
+      }
       
       # Modify FeHo wind
       cent_wind_extract <- na.omit(cent_wind_extract)
@@ -213,13 +224,14 @@ for (AreaName in AreaList){
                                  cent_wind_extract)
     }
     print(Feho_wind_extract)
+    # Average all collected hourly wind information within the FeHo interval
     tp_feho <- data.frame(Wind = dirAngle_mean(Feho_wind_extract$windComeDeg),
                           wind_speed = mean(Feho_wind_extract$wind_speed),
                           FeHo_W = fhGet)
     wind_Feho <- rbind(wind_Feho, tp_feho)
     rm(tp_feho)
     
-    message("---- END ----\n")
+    message(paste0("---- END of ", "FeHo ", i, ":", fhGet, " ----(", AreaName,")\n"))
     # ggplot() +
       # geom_sf(data = vFireIn[21])
       # geom_tile(data = r, aes(x=x, y=y, fill=lyr.1))
