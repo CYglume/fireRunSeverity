@@ -8,6 +8,7 @@ R/fun/(tbc)peri_Extract_severity.R
 
 # Data
 /data/
+/doc/
 /src/fireRaw/*
 !/src/fireRaw/README.md
 geeIDS.json

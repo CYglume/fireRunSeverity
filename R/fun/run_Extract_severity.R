@@ -6,6 +6,8 @@
 ## 3. spatVector of fire runs
 ## 4. spatRaster of severity indices (can be stacked)
 ## 5. data.frame of wind table
+## 6. data.frame of vpd table
+## 5. spatRaster of land cover type map
 ##
 ## ! Turn `quiet = on` to mute the progress output !
 # -------------------------------------------------------------------------
@@ -13,7 +15,7 @@ source("R/fun/wind_Oper_Function.R", echo = FALSE)
 source("R/fun/Data_Function.R", echo = FALSE)
 run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons, 
                                  raster_Indices, env_Indices, spei_Indices,
-                                 wind_Table,  vpd_Table, quiet = F){
+                                 wind_Table,  vpd_Table, land_CV, quiet = F){
   #Pre-set variables
   buffer_width = 30 #meter
   
@@ -34,15 +36,27 @@ run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons,
     # Peri_i, clp_run                                         #
     ###########################################################
     
+    # Get i-th perimeter
     Peri_i <- fire_Perimeters %>% filter(OBJECTID == objID)
+    ### Check feature validity
+    if (!is.valid(Peri_i)){
+      Peri_i <- makeValid(Peri_i)
+    }
+    ### Check Polygon size
     if (expanse(Peri_i)/10000 < 1){ # Skip loop if perimeter polygon is smaller than 1 ha
       message(paste("!--- Skipping for low polygon area:", 
                     round(expanse(Peri_i)/10000, 3), "ha"))
       next
     }
     
+    # Get i-th fire run
     Run_i <- run_Polygons %>% filter(ID == objID)
+    ### Check feature validity
+    if (!is.valid(Run_i)){
+      Run_i <- makeValid(Run_i)
+    }
     linePoints_i <- as.points(Run_i)
+    
     
     # Check where the run is
     run_crd <- project(Run_i, "epsg:4326") %>% crds()
@@ -110,11 +124,20 @@ run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons,
     # 4. random sample the pixels
     # Sample the valid cells in size of extracted cell counts
     # Sample Severity
+    message(cli::col_blue(" ----- Extracting for the rest of AOI"))
+    message(cli::col_blue(" ------- Severity"))
     sampled_rest_area_Severity = sample_outRuns(ras_filtered = r_sev, 
                                                 run_extract_tbl = run_idcs)
     ### Sample SPEI
+    message(cli::col_blue(" ------- SPEI"))
     sampled_rest_area_SPEI     = sample_outRuns(ras_filtered = r_spei, 
                                                 run_extract_tbl = run_spei)
+    
+    # 5. extract all for whole perimeters
+    message(cli::col_blue(" ----- Extracting for whole perimeter"))
+    message(cli::col_blue(" ------- Land Cover"))
+    landcv_onPeri <- terra::extract(land_CV, Peri_i, cells = T) %>% 
+      select(ID, lccs_class, cell) %>% na.omit()
     # -------------------------------------------------------------------------  
     #################################################################
     # Calculate statistics as table:                                #
@@ -143,7 +166,8 @@ run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons,
                             speed    = Run_i$Distance/i_duration,
                             wind_Dir = wind_Table$Wind[wind_Table$codi_hora == Run_i$Hour],
                             wind_spd = wind_Table$wind_speed[wind_Table$codi_hora == Run_i$Hour],
-                            vpd_kPa  = vpd_Table$VPD_kPa[vpd_Table$codi_hora == Run_i$Hour])
+                            vpd_kPa  = vpd_Table$VPD_kPa[vpd_Table$codi_hora == Run_i$Hour],
+                            tp       = vpd_Table$tp[vpd_Table$codi_hora == Run_i$Hour])
     
     ########################
     # Stats for environmental factors
@@ -175,12 +199,15 @@ run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons,
     # Stats for other area extract
     i_OUTOF_run_idcs <- pixel_summary(sampled_rest_area_Severity)
     i_OUTOF_run_SPEI <- pixel_summary(sampled_rest_area_SPEI)
+    
+    # Stats for Perimeter extract
+    i_peri_landcv <- fct_pixel_summary(landcv_onPeri)
     ########################
 
     
     # Combine stats of indices array together
-    i_run_idcs       <- cbind(fire_Vars, env_Vars, i_run_spei, i_run_idcs) %>% as_tibble()
-    i_OUTOF_run_idcs <- cbind(fire_Vars, env_Vars, i_OUTOF_run_SPEI, i_OUTOF_run_idcs) %>% as_tibble()
+    i_run_idcs       <- cbind(fire_Vars, env_Vars, i_run_spei, i_peri_landcv, i_run_idcs) %>% as_tibble()
+    i_OUTOF_run_idcs <- cbind(fire_Vars, env_Vars, i_OUTOF_run_SPEI, i_peri_landcv, i_OUTOF_run_idcs) %>% as_tibble()
     
     # for pixels under fire run
     if(!exists("RUN_idcs")){
@@ -201,35 +228,4 @@ run_Extract_severity <- function(aoi_Name, fire_Perimeters, run_Polygons,
   return(list(Run = RUN_idcs, OutRun = OUTOF_RUN_idcs))
 }  
   
-
-# Build extraction function for inside/outside fireruns
-pixel_summary <- function(dt){
-  dt %>% 
-    as_tibble() %>% 
-    select(-any_of(c('ID', 'cell'))) %>% 
-    summarise(across(
-      everything(),
-      list(
-        Mean = mean,
-        SE = se
-      ),
-      .names = "{.col}_{.fn}"
-    ))
-}
-
-sample_outRuns <- function(ras_filtered, run_extract_tbl){
-  valid_cells   <- which(!is.na(values(ras_filtered[[1]])))
-  if (length(valid_cells) <= length(run_extract_tbl$cell)){
-    # If cells for run indices not less than the rest
-    # Use all left cells
-    message("!----- Pixels left for sample no more than already used!")
-    sample_cells  <- valid_cells
-  }else{
-    # Sample cells at the same size as run indices
-    sample_cells  <- sample(valid_cells, size = length(run_extract_tbl$cell), replace=FALSE)
-  }
-  message(cli::col_blue(" ----- Extracting SPEI for the rest of AOI"))
-  sampled_rest_area <- terra::extract(ras_filtered, sample_cells) %>% data.frame(cell = sample_cells)
-  return(sampled_rest_area)
-}
 

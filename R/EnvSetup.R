@@ -4,6 +4,7 @@ root_folder <- rprojroot::find_rstudio_root_file()
 run_DataDir  <- r"(data/fireruns)"
 idcs_DataDir <- r"(data/GEE)"
 er5_DataDir  <- r"(data/ER5)"
+landCV_DataDir <- r"(data/LandCover)"
 stats_DataDir  <- r"(data/Stats)"
 stats_PlotDir   <- r"(man/sPlot)"
 setwd(root_folder)
@@ -35,6 +36,7 @@ source("R/fun/Data_Function.R", echo = FALSE)
 dt_folder <- c(run_DataDir, 
                idcs_DataDir, 
                er5_DataDir,
+               landCV_DataDir,
                stats_DataDir,
                stats_PlotDir,
                "src/fireRaw")

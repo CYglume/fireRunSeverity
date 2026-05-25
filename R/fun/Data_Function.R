@@ -304,3 +304,48 @@ normal_range <- function(df, col){
   c(mean(df[,col]) - 5 * sd(df[,col]),
     mean(df[,col]) + 5 * sd(df[,col]))
 }
+
+
+# Build extraction function for inside/outside fireruns
+pixel_summary <- function(dt){
+  dt %>% 
+    as_tibble() %>% 
+    select(-any_of(c('ID', 'cell'))) %>% 
+    summarise(across(
+      everything(),
+      list(
+        Mean = mean,
+        SD = sd
+      ),
+      .names = "{.col}_{.fn}"
+    ))
+}
+
+fct_pixel_summary <- function(dt){
+  dt %>% 
+    as_tibble() %>% 
+    select(-any_of(c('ID', 'cell'))) %>% 
+    summarise(across(
+      everything(),
+      list(
+        Mode = mode_fn
+      ),
+      .names = "{.col}_{.fn}"
+    )) %>% 
+    mutate(across(everything(), as.factor))
+}
+
+sample_outRuns <- function(ras_filtered, run_extract_tbl){
+  valid_cells   <- which(!is.na(values(ras_filtered[[1]])))
+  if (length(valid_cells) <= length(run_extract_tbl$cell)){
+    # If cells for run indices not less than the rest
+    # Use all left cells
+    message("!----- Pixels left for sample no more than already used!")
+    sample_cells  <- valid_cells
+  }else{
+    # Sample cells at the same size as run indices
+    sample_cells  <- sample(valid_cells, size = length(run_extract_tbl$cell), replace=FALSE)
+  }
+  sampled_rest_area <- terra::extract(ras_filtered, sample_cells) %>% data.frame(cell = sample_cells)
+  return(sampled_rest_area)
+}

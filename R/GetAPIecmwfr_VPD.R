@@ -193,32 +193,41 @@ for (AreaName in AreaList){
       # Calculate VPD direction and speed from vectors u & v
       Tp_d <- r[[ti*2 - 1]]-273.15
       Tp   <- r[[ti*2]]-273.15
-      VPD <- 0.6109*exp(17.625*Tp/(Tp+243.04)) - 0.6109*exp(17.625*Tp_d/(Tp_d+243.04))
-      VPD2 <- 0.61078*exp(17.269*Tp/(Tp+237.3)) - 0.61078*exp(17.269*Tp_d/(Tp_d+237.3))
+      VPD <- 0.6109*exp(17.625*Tp/(Tp+243.04)) - 0.6109*exp(17.625*Tp_d/(Tp_d+243.04)) #Improved Magnus
+      # VPD2 <- 0.61078*exp(17.269*Tp/(Tp+237.3)) - 0.61078*exp(17.269*Tp_d/(Tp_d+237.3))
       
-      VPD <- VPD %>% rename(value = 1)
+      VPD <- VPD %>% rename(vpd = 1)
+      Tp  <- Tp  %>% rename(tp  = 1)
+      weather_Ras <- c(VPD, Tp)
       # 1. Use centroid only
-      cent_VPD_extract <- terra::extract(VPD, centroids(feat_fh))
-      if (nrow(na.omit(cent_VPD_extract)) == 0){ 
+      weather_Ras_extract <- terra::extract(weather_Ras, centroids(feat_fh))
+      # cent_Tp_extract <- terra::extract(Tp, centroids(feat_fh))
+      if (nrow(na.omit(weather_Ras_extract)) == 0){ 
         # if centroids are not inside valid rasters
         # 2. Use polygon and get touched pixels
-        cent_VPD_extract <- terra::extract(VPD, feat_fh, touches = T)
+        weather_Ras_extract <- terra::extract(weather_Ras, feat_fh, touches = T)
       }
+      # if (nrow(na.omit(cent_Tp_extract)) == 0){ 
+      #   # if centroids are not inside valid rasters
+      #   # 2. Use polygon and get touched pixels
+      #   cent_Tp_extract <- terra::extract(Tp, feat_fh, touches = T)
+      # }
       
       # Clean FeHo VPD
-      cent_VPD_extract <- na.omit(cent_VPD_extract)
-      cent_VPD_extract <- cent_VPD_extract %>% 
+      weather_Ras_extract <- na.omit(weather_Ras_extract)
+      weather_Ras_extract <- weather_Ras_extract %>% 
         mutate(Feho = terra::time(r[[ti*2-1]]))
       
       Feho_VPD_extract <- rbind(Feho_VPD_extract,
-                                 cent_VPD_extract)
+                                weather_Ras_extract)
     }
     print(Feho_VPD_extract)
     # Average all collected hourly VPD information within the FeHo interval
-    tp_feho <- data.frame(VPD_kPa = mean(Feho_VPD_extract$value),
+    single_feho <- data.frame(VPD_kPa = mean(Feho_VPD_extract$vpd),
+                          tp      = mean(Feho_VPD_extract$tp),
                           FeHo_V = fhGet)
-    VPD_Feho <- rbind(VPD_Feho, tp_feho)
-    rm(tp_feho)
+    VPD_Feho <- rbind(VPD_Feho, single_feho)
+    rm(single_feho)
     
     message(paste0("---- END of ", "FeHo ", i, ":", fhGet, " ----(", AreaName,")\n"))
   }

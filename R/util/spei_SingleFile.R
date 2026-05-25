@@ -14,6 +14,7 @@ cropBox <- ext(fPeri) %>% vect(crs = crs(fPeri)) %>%  project("EPSG:4326")
 
 
 # Get SPEI (locally provided)
+# Ignore TimeZone difference as this SPEI uses monthly means
 in_spei_list = list.files(SPEI_dir)
 yr = fPeri$FeHo %>% parse_date_time(orders = c("%y/%m/%d_%H%M")) %>% year() %>% unique()
 mn = fPeri$FeHo %>% parse_date_time(orders = c("%y/%m/%d_%H%M")) %>% month() %>% unique()

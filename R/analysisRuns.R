@@ -9,11 +9,20 @@
 # ------------------------------------------------------------------------------
 source("R/EnvSetup.R", echo = TRUE)
 source("R/fun/run_Extract_severity.R")
+source("R/fun/peri_Extract_severity.R")
+if (file.exists(file.path(stats_DataDir, "sevExtract.RData"))) {
+  load(file.path(stats_DataDir, "sevExtract.RData"))
+}
 
-
+extract_To_Run <- F # F for extract to Perimeters
 AreaList <- basename(list.dirs(file.path(run_DataDir), recursive = F))
 
-if (exists("all_StatsLst2")){rm(all_StatsLst2)}
+if (extract_To_Run){
+  if (exists("all_StatsLst2")){rm(all_StatsLst2)}
+}else{
+  if (exists("all_StatsLst2_Peri")){rm(all_StatsLst2_Peri)}
+}
+
 for (AreaName in AreaList) {
   message(paste("\n----------------------------------------------"))
   message(paste("Processing AOI:", AreaName))
@@ -59,40 +68,30 @@ for (AreaName in AreaList) {
   if (exists("ras_idcs")){rm(ras_idcs)}
   if (exists("ras_env_idcs")){rm(ras_env_idcs)}
   if (exists("ras_spei")){rm(ras_spei)}
-  for (i in 1:nrow(ids)){
-    if (!exists("ras_idcs")){
-      ras_idcs <- rast(ids$loc[i])
-    }else{
-      ras_idcs <- c(ras_idcs, rast(ids$loc[i]))
-    }
-  }
   
-  for (i in 1:nrow(env_ids)){
-    if (!exists("ras_env_idcs")){
-      ras_env_idcs <- rast(env_ids$loc[i])
-    }else{
-      ras_env_idcs <- c(ras_env_idcs, rast(env_ids$loc[i]))
-    }
-  }
+  ras_idcs <- rast(ids$loc)
+  ras_env_idcs <- rast(env_ids$loc)
+  ras_spei <- rast(SPEI_ids$loc)
   
-  for (i in 1:nrow(SPEI_ids)){
-    if (!exists("ras_spei")){
-      ras_spei <- rast(SPEI_ids$loc[i])
-    }else{
-      ras_spei <- c(ras_spei, rast(SPEI_ids$loc[i]))
-    }
+  # Land Cover Map
+  lcvLst = list.files(file.path(root_folder, landCV_DataDir, AreaName),
+                      pattern = ".nc$",full.names = T)
+  if (length(lcvLst) == 1){
+    ras_landcv <- rast(lcvLst[1])
+  } else {
+    message("Found 0 or more than 1 Land Cover maps in folder: ", AreaName)
   }
-  
 
+  # Other Environmental Datasets
+  vect_Peri <- fetch_firePeri(AreaName)
+  windTbl  <- read.csv(file.path(dt_fld, "TesaureWind.csv"), header = T)
+  VPDTbl  <- read.csv(file.path(dt_fld, "VPD.csv"), header = T)
 # -------------------------------------------------------------------------
 # Prepare fire runs for indices extraction 
   for (runType in c("FullWind", "FullPol")){
     message(cli::col_blue(paste0(" -- Extraction for FireRuns type: ", runType)))
     # Get vector FireRuns -----------------------------------------------------
     vect_Run <- fetch_fireRun(AreaName, runType)
-    vect_Peri <- fetch_firePeri(AreaName)
-    windTbl  <- read.csv(file.path(dt_fld, "TesaureWind.csv"), header = T)
-    VPDTbl  <- read.csv(file.path(dt_fld, "VPD.csv"), header = T)
     
     # Filter out zero length fire runs
     vect_Run <- vect_Run %>%
@@ -106,28 +105,54 @@ for (AreaName in AreaList) {
     
     
     message(cli::col_blue(" -- Running Indices Extraction..."))
-    tp_StatsLst <- run_Extract_severity(aoi_Name        = AreaName,
-                                        fire_Perimeters = vect_Peri,
-                                        run_Polygons    = vect_Run,
-                                        raster_Indices  = ras_idcs,
-                                        env_Indices     = ras_env_idcs,
-                                        spei_Indices    = ras_spei,
-                                        wind_Table      = windTbl,
-                                        vpd_Table       = VPDTbl)
-
-    # Add run type flag to the data table
-    tp_StatsLst$Run$runType = runType
-    tp_StatsLst$OutRun$runType = runType
-    
-    if (!exists("all_StatsLst2")){
-      all_StatsLst2 = tp_StatsLst
+    if (extract_To_Run) {
+      tp_StatsLst <- run_Extract_severity(aoi_Name        = AreaName,
+                                          fire_Perimeters = vect_Peri,
+                                          run_Polygons    = vect_Run,
+                                          raster_Indices  = ras_idcs,
+                                          env_Indices     = ras_env_idcs,
+                                          spei_Indices    = ras_spei,
+                                          wind_Table      = windTbl,
+                                          vpd_Table       = VPDTbl,
+                                          land_CV         = ras_landcv)
+      # Add run type flag to the data table
+      tp_StatsLst$Run$runType = runType
+      tp_StatsLst$OutRun$runType = runType
+      
+      if (!exists("all_StatsLst2")){
+        all_StatsLst2 = tp_StatsLst
+      }else{
+        all_StatsLst2$Run <- rbind(all_StatsLst2$Run, tp_StatsLst$Run)
+        all_StatsLst2$OutRun <- rbind(all_StatsLst2$OutRun, tp_StatsLst$OutRun)
+      }
     }else{
-      all_StatsLst2$Run <- rbind(all_StatsLst2$Run, tp_StatsLst$Run)
-      all_StatsLst2$OutRun <- rbind(all_StatsLst2$OutRun, tp_StatsLst$OutRun)
+      tp_StatsLst <- run_Extract_severity_Peri(aoi_Name        = AreaName,
+                                               fire_Perimeters = vect_Peri,
+                                               run_Polygons    = vect_Run,
+                                               raster_Indices  = ras_idcs,
+                                               env_Indices     = ras_env_idcs,
+                                               spei_Indices    = ras_spei,
+                                               wind_Table      = windTbl,
+                                               vpd_Table       = VPDTbl,
+                                               land_CV         = ras_landcv)
+      
+      # Add run type flag to the data table
+      tp_StatsLst$Run$runType = runType
+      
+      if (!exists("all_StatsLst2_Peri")){
+        all_StatsLst2_Peri = tp_StatsLst
+      }else{
+        all_StatsLst2_Peri$Run <- rbind(all_StatsLst2_Peri$Run, tp_StatsLst$Run)
+      }
     }
+
+    
   }
   message(paste("Finished table combination"))
   message(paste("----------------------------------------------"))
 }
-save(all_StatsLst2, file = file.path(stats_DataDir, "sevExtract.RData"))
 
+saveLst <- c("all_StatsLst2", "all_StatsLst2_Peri")
+saveLst <- saveLst[saveLst %in% ls()]
+# Save objects without removing previously saved ones
+save(list = saveLst, file = file.path(stats_DataDir, "sevExtract.RData"))
