@@ -116,8 +116,8 @@ for in_Name in AreaList:
     print(dateSt, dateEd)
 
     L7_flag = False # for using Landsat-7 dataset if burning timing before Sentinel-2
-    if dateSt < date(2017, 3, 28):
-        print("!! ---------- Date before 28 Mar 2017! ---------- !!")
+    if dateSt < date(2017, 3, 28) + timedelta(days = 4*30):
+        print("!! ---------- Composite Date before 28 Mar 2017 (+-120 days)! ---------- !!")
         print("----- AOI: ", in_Name, " -----")
         print("----- Using Landsat 7 ......")
         L7_flag = True

@@ -8,11 +8,11 @@ def get_timezone(lat, lon):
 # Functions for Computing Necessary indices
 def func_maskClouds(image):
     imgCLP = image.select("MSK_CLDPRB")
-    mskCLP = imgCLP.lt(10)  
+    # mskCLP = imgCLP.lt(10)  
     qa = image.select("QA60")
     Clouds = qa.bitwiseAnd(1 << 10).eq(0)  
     Cirrus = qa.bitwiseAnd(1 << 11).eq(0) 
-    mask = Clouds.And(Cirrus).And(mskCLP)
+    mask = Clouds.And(Cirrus) #.And(mskCLP)
     return image.updateMask(mask)
 
 def maskClouds_L7(image):
